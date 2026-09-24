@@ -2,4 +2,15 @@ spring:
   application:
     name: portfolio
   profiles:
-    active: dev    # ganti ke "prod" saat deploy
+    active: dev
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+logging:
+  level:
+    root: INFO
+    com.anjar.portfolio: DEBUG

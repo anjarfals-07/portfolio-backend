@@ -13,3 +13,38 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: dev-secret-key-minimal-32-characters-long-here
+    expiration-ms: 86400000
+  cors:
+    allowed-origins: http://localhost:5173
+  frontend-url: http://localhost:5173
+
+  # ===== Cloudinary =====
+  cloudinary:
+    cloud-name: YOUR_CLOUD_NAME
+    api-key: YOUR_API_KEY
+    api-secret: YOUR_API_SECRET
+    folder: portfolio
+
+  # ===== Email (Resend) =====
+  resend:
+    api-key: re_xxxxxxxxxxxxxxxxxxxxx
+    from-email: onboarding@resend.dev
+    from-name: Portfolio Contact
+    to-email: your-email@gmail.com
+    enabled: true

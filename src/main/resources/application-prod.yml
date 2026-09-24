@@ -3,10 +3,20 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
 
 server:
   port: ${PORT:8080}
@@ -17,3 +27,22 @@ app:
     expiration-ms: 86400000
   cors:
     allowed-origins: ${FRONTEND_URL}
+  frontend-url: ${FRONTEND_URL}
+
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME}
+    api-key: ${CLOUDINARY_API_KEY}
+    api-secret: ${CLOUDINARY_API_SECRET}
+    folder: portfolio
+
+  resend:
+    api-key: ${RESEND_API_KEY}
+    from-email: ${RESEND_FROM_EMAIL:noreply@yourdomain.com}
+    from-name: Portfolio Contact
+    to-email: ${RESEND_TO_EMAIL}
+    enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.anjar.portfolio: INFO

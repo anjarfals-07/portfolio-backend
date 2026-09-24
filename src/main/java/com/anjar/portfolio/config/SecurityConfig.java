@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/experiences/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/skills/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tech-stack/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/blog/**").permitAll()
 
                         // Public write (contact form)
                         .requestMatchers(HttpMethod.POST, "/api/messages").permitAll()
@@ -80,6 +81,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/messages/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/messages/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/messages/**").hasRole("ADMIN")
+
+                        // Upload (admin only)
+                        .requestMatchers(HttpMethod.POST, "/api/upload/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/upload/**").hasRole("ADMIN")
 
                         // ===== ANY OTHER =====
                         .anyRequest().authenticated()

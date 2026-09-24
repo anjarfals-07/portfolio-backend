@@ -5,16 +5,19 @@ import com.anjar.portfolio.entity.Message;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessageService {
 
     private final MessageRepository messageRepository;
+    private final EmailService emailService;  // ← INJECT
 
     // ===== GET ALL =====
     @Transactional(readOnly = true)
@@ -37,13 +40,11 @@ public class MessageService {
     }
 
     // ===== GET BY ID =====
-    // Auto-mark as read saat dibuka
     @Transactional
     public MessageDTO getById(Long id) {
         Message m = messageRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Message", id));
 
-        // Auto mark as read
         if (Boolean.FALSE.equals(m.getRead())) {
             m.setRead(true);
             messageRepository.save(m);
@@ -62,7 +63,14 @@ public class MessageService {
                 .message(dto.getMessage())
                 .read(false)
                 .build();
-        return toDTO(messageRepository.save(m));
+
+        Message saved = messageRepository.save(m);
+        log.info("📩 Message saved with ID: {}", saved.getId());
+
+        // Kirim email notif (async, gak nge-block response)
+        emailService.sendContactNotification(saved);
+
+        return toDTO(saved);
     }
 
     // ===== MARK AS READ =====
