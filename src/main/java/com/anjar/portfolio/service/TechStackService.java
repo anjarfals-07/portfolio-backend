@@ -2,8 +2,11 @@ package com.anjar.portfolio.service;
 
 import com.anjar.portfolio.dto.TechStackDTO;
 import com.anjar.portfolio.entity.TechStack;
+import com.anjar.portfolio.entity.User;
+import com.anjar.portfolio.exception.ForbiddenException;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.TechStackRepository;
+import com.anjar.portfolio.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,26 +18,34 @@ import java.util.List;
 public class TechStackService {
 
     private final TechStackRepository techStackRepository;
+    private final UserRepository userRepository;
 
-    // ===== GET ALL =====
     @Transactional(readOnly = true)
-    public List<TechStackDTO> getAll() {
-        return techStackRepository.findAllByOrderBySortOrderAscNameAsc()
+    public List<TechStackDTO> getAll(Long userId) {
+        return techStackRepository.findByUserIdOrderBySortOrderAscNameAsc(userId)
                 .stream().map(this::toDTO).toList();
     }
 
-    // ===== GET BY ID =====
     @Transactional(readOnly = true)
-    public TechStackDTO getById(Long id) {
-        TechStack t = techStackRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("TechStack", id));
-        return toDTO(t);
+    public TechStackDTO getById(Long id, Long userId) {
+        return toDTO(findOwned(id, userId));
     }
 
-    // ===== CREATE =====
+    // ===== GET PUBLIC (by portfolioSlug) =====
+    @Transactional(readOnly = true)
+    public List<TechStackDTO> getPublicList(String portfolioSlug) {
+        return techStackRepository
+                .findByUserPortfolioSlugOrderBySortOrderAscNameAsc(portfolioSlug)
+                .stream().map(this::toDTO).toList();
+    }
+
     @Transactional
-    public TechStackDTO create(TechStackDTO dto) {
+    public TechStackDTO create(Long userId, TechStackDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
         TechStack t = TechStack.builder()
+                .user(user)
                 .name(dto.getName())
                 .icon(dto.getIcon())
                 .sortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : 0)
@@ -42,11 +53,9 @@ public class TechStackService {
         return toDTO(techStackRepository.save(t));
     }
 
-    // ===== UPDATE =====
     @Transactional
-    public TechStackDTO update(Long id, TechStackDTO dto) {
-        TechStack t = techStackRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("TechStack", id));
+    public TechStackDTO update(Long id, Long userId, TechStackDTO dto) {
+        TechStack t = findOwned(id, userId);
 
         if (dto.getName() != null) t.setName(dto.getName());
         if (dto.getIcon() != null) t.setIcon(dto.getIcon());
@@ -55,16 +64,21 @@ public class TechStackService {
         return toDTO(techStackRepository.save(t));
     }
 
-    // ===== DELETE =====
     @Transactional
-    public void delete(Long id) {
-        if (!techStackRepository.existsById(id)) {
-            throw new ResourceNotFoundException("TechStack", id);
-        }
-        techStackRepository.deleteById(id);
+    public void delete(Long id, Long userId) {
+        TechStack t = findOwned(id, userId);
+        techStackRepository.delete(t);
     }
 
-    // ===== Mapper =====
+    private TechStack findOwned(Long id, Long userId) {
+        TechStack t = techStackRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("TechStack", id));
+        if (!t.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("TechStack ini bukan milik kamu");
+        }
+        return t;
+    }
+
     private TechStackDTO toDTO(TechStack t) {
         return TechStackDTO.builder()
                 .id(t.getId())

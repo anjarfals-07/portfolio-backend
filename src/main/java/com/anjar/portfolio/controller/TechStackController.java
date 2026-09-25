@@ -2,6 +2,7 @@ package com.anjar.portfolio.controller;
 
 import com.anjar.portfolio.dto.TechStackDTO;
 import com.anjar.portfolio.service.TechStackService;
+import com.anjar.portfolio.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,42 +19,42 @@ public class TechStackController {
 
     private final TechStackService techStackService;
 
-    // ===== GET ALL =====
-    // GET /api/tech-stack
     @GetMapping
     public ResponseEntity<List<TechStackDTO>> getAll() {
-        return ResponseEntity.ok(techStackService.getAll());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(techStackService.getAll(userId));
     }
 
-    // ===== GET BY ID =====
-    // GET /api/tech-stack/{id}
+    @GetMapping("/public/{portfolioSlug}")
+    public ResponseEntity<List<TechStackDTO>> getPublicList(@PathVariable String portfolioSlug) {
+        return ResponseEntity.ok(techStackService.getPublicList(portfolioSlug));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TechStackDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(techStackService.getById(id));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(techStackService.getById(id, userId));
     }
 
-    // ===== CREATE =====
-    // POST /api/tech-stack
     @PostMapping
     public ResponseEntity<TechStackDTO> create(@Valid @RequestBody TechStackDTO dto) {
+        Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(techStackService.create(dto));
+                .body(techStackService.create(userId, dto));
     }
 
-    // ===== UPDATE =====
-    // PUT /api/tech-stack/{id}
     @PutMapping("/{id}")
     public ResponseEntity<TechStackDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody TechStackDTO dto) {
-        return ResponseEntity.ok(techStackService.update(id, dto));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(techStackService.update(id, userId, dto));
     }
 
-    // ===== DELETE =====
-    // DELETE /api/tech-stack/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        techStackService.delete(id);
+        Long userId = SecurityUtil.requireCurrentUserId();
+        techStackService.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

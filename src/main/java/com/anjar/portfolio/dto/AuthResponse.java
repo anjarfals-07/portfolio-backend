@@ -12,9 +12,14 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
 
     private String token;
-    private String type;      // "Bearer"
-    private Long id;
+
+    @Builder.Default
+    private String type = "Bearer";
+
+    private Long userId;
     private String username;
-    private String email;
-    private String role;
+    private String role;         // ← BARU: OWNER / SUPER_ADMIN
+    private String portfolioSlug; // ← BARU: /anjar
+    private String displayName;   // ← BARU
+    private Long expiresIn;       // ← BARU: ms
 }

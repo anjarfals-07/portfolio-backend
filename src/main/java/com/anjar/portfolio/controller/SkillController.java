@@ -2,6 +2,7 @@ package com.anjar.portfolio.controller;
 
 import com.anjar.portfolio.dto.SkillDTO;
 import com.anjar.portfolio.service.SkillService;
+import com.anjar.portfolio.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,50 +20,49 @@ public class SkillController {
 
     private final SkillService skillService;
 
-    // ===== GET ALL (flat) =====
-    // GET /api/skills
     @GetMapping
     public ResponseEntity<List<SkillDTO>> getAll() {
-        return ResponseEntity.ok(skillService.getAll());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(skillService.getAll(userId));
     }
 
-    // ===== GET GROUPED BY CATEGORY =====
-    // GET /api/skills/grouped
-    // Output: { "Backend": { category, categoryIcon, items: [...] }, ... }
     @GetMapping("/grouped")
     public ResponseEntity<Map<String, Map<String, Object>>> getGrouped() {
-        return ResponseEntity.ok(skillService.getGrouped());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(skillService.getGrouped(userId));
     }
 
-    // ===== GET BY ID =====
-    // GET /api/skills/{id}
+    @GetMapping("/public/{portfolioSlug}")
+    public ResponseEntity<Map<String, Map<String, Object>>> getPublicGrouped(
+            @PathVariable String portfolioSlug) {
+        return ResponseEntity.ok(skillService.getPublicGrouped(portfolioSlug));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<SkillDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(skillService.getById(id));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(skillService.getById(id, userId));
     }
 
-    // ===== CREATE =====
-    // POST /api/skills
     @PostMapping
     public ResponseEntity<SkillDTO> create(@Valid @RequestBody SkillDTO dto) {
+        Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(skillService.create(dto));
+                .body(skillService.create(userId, dto));
     }
 
-    // ===== UPDATE =====
-    // PUT /api/skills/{id}
     @PutMapping("/{id}")
     public ResponseEntity<SkillDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody SkillDTO dto) {
-        return ResponseEntity.ok(skillService.update(id, dto));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(skillService.update(id, userId, dto));
     }
 
-    // ===== DELETE =====
-    // DELETE /api/skills/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        skillService.delete(id);
+        Long userId = SecurityUtil.requireCurrentUserId();
+        skillService.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

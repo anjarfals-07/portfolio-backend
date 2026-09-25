@@ -25,6 +25,11 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ===== OWNER (Multi-Tenant) =====
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
     @Column(name = "full_name", nullable = false, length = 200)
     private String fullName;
 
@@ -53,7 +58,6 @@ public class Profile {
     @Builder.Default
     private Boolean availableForWork = true;
 
-    // Socials: [{"icon": "pi pi-github", "url": "...", "label": "GitHub"}]
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<Map<String, String>> socials;

@@ -2,6 +2,7 @@ package com.anjar.portfolio.controller;
 
 import com.anjar.portfolio.dto.ProfileDTO;
 import com.anjar.portfolio.service.ProfileService;
+import com.anjar.portfolio.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,24 +16,30 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
-    // ===== GET PROFILE =====
-    // GET /api/profile
+    // ===== GET PROFILE (OWNER) =====
     @GetMapping
     public ResponseEntity<ProfileDTO> getProfile() {
-        return ResponseEntity.ok(profileService.getProfile());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(profileService.getProfile(userId));
     }
 
-    // ===== SAVE / UPDATE PROFILE =====
-    // POST /api/profile  (upsert: create kalau belum ada, update kalau udah ada)
+    // ===== GET PUBLIC PROFILE =====
+    @GetMapping("/public/{portfolioSlug}")
+    public ResponseEntity<ProfileDTO> getPublicProfile(@PathVariable String portfolioSlug) {
+        return ResponseEntity.ok(profileService.getPublicProfile(portfolioSlug));
+    }
+
+    // ===== SAVE / UPDATE PROFILE (OWNER) =====
     @PostMapping
     public ResponseEntity<ProfileDTO> saveProfile(@Valid @RequestBody ProfileDTO dto) {
-        return ResponseEntity.ok(profileService.saveProfile(dto));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(profileService.saveProfile(userId, dto));
     }
 
-    // ===== UPDATE PROFILE (alias PUT) =====
-    // PUT /api/profile
+    // ===== UPDATE PROFILE (OWNER — alias PUT) =====
     @PutMapping
     public ResponseEntity<ProfileDTO> updateProfile(@Valid @RequestBody ProfileDTO dto) {
-        return ResponseEntity.ok(profileService.saveProfile(dto));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(profileService.saveProfile(userId, dto));
     }
 }

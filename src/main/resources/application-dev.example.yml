@@ -1,15 +1,53 @@
+# ============================================================
+# DEV PROFILE — EXAMPLE TEMPLATE
+# ============================================================
+# Copy file ini jadi `application-dev.yml` lalu isi credential actual.
+#
+#   cp application-dev-example.yml application-dev.yml
+#
+# ⚠️  JANGAN COMMIT `application-dev.yml` — udah ada di .gitignore.
+# ============================================================
+
 spring:
   datasource:
     url: jdbc:postgresql://YOUR_HOST/neondb?sslmode=require
     username: YOUR_USERNAME
     password: YOUR_PASSWORD
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    open-in-view: false
+
+# ============================================================
+# CLOUDINARY
+# ============================================================
+cloudinary:
+  cloud-name: nayinpa6
+  api-key: YOUR_CLOUDINARY_API_KEY
+  api-secret: YOUR_CLOUDINARY_API_SECRET
+  folder: portfolio
+
+# ============================================================
+# RESEND (Email)
+# ============================================================
+resend:
+  api-key: YOUR_RESEND_API_KEY
+  from-email: onboarding@resend.dev
+  from-name: Portfolio Contact
+  to-email: your-email@gmail.com
+  enabled: true
+
+# ============================================================
+# LOGGING (DEV)
+# ============================================================
+logging:
+  level:
+    com.anjar.portfolio: DEBUG
+    org.hibernate.SQL: DEBUG

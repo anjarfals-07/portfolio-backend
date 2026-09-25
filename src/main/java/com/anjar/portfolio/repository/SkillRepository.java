@@ -9,9 +9,17 @@ import java.util.List;
 @Repository
 public interface SkillRepository extends JpaRepository<Skill, Long> {
 
-    // Sort by category, lalu sort_order
-    List<Skill> findAllByOrderByCategoryAscSortOrderAsc();
+    // ===== MULTI-TENANT (BARU) =====
+    List<Skill> findByUserIdOrderByCategoryAscSortOrderAsc(Long userId);
 
-    // Ambil skill per kategori
+    List<Skill> findByUserIdAndCategoryOrderBySortOrderAsc(Long userId, String category);
+
+    long countByUserId(Long userId);
+
+    // ===== PUBLIC (by user slug) (BARU) =====
+    List<Skill> findByUserPortfolioSlugOrderByCategoryAscSortOrderAsc(String portfolioSlug);
+
+    // ===== LAMA =====
+    List<Skill> findAllByOrderByCategoryAscSortOrderAsc();
     List<Skill> findByCategoryOrderBySortOrderAsc(String category);
 }

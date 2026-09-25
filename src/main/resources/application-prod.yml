@@ -1,19 +1,140 @@
+# ============================================================
+# PROD PROFILE
+# ============================================================
+# ⚠️  JANGAN COMMIT credential di file ini!
+# Pakai environment variable untuk production:
+#
+#   export DB_URL=jdbc:postgresql://...
+#   export DB_USERNAME=...
+#   export DB_PASSWORD=...
+#   export CLOUDINARY_API_KEY=...
+#   export CLOUDINARY_API_SECRET=...
+#   export RESEND_API_KEY=...
+#
+# Atau pakai secret manager (Vercel, Railway, AWS Secrets Manager, dll).
+# ============================================================
+
 spring:
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    # ⚠️  WAJIB di-override via env var — jangan hardcode di sini
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+    # ===== HikariCP Pool Config (Production) =====
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: PortfolioHikariPool
+      connection-test-query: SELECT 1
+
   jpa:
     hibernate:
+      # ⚠️  Production: pakai `validate` atau `none` — JANGAN `update`
+      # Karena `update` bisa ubah schema otomatis (bahaya di prod).
       ddl-auto: validate
     show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Batch insert/update untuk performance
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+# ============================================================
+# SERVER
+# ============================================================
 server:
   port: ${PORT:8080}
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  # Forwarded headers (untuk reverse proxy / load balancer)
+  forward-headers-strategy: framework
 
+# ============================================================
+# APP
+# ============================================================
 app:
   jwt:
+    # ⚠️  WAJIB di-override via env var — pakai secret yang kuat (min 32 karakter)
     secret: ${JWT_SECRET}
-    expiration-ms: 86400000
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   cors:
-    allowed-origins: ${FRONTEND_URL}
+    # ⚠️  WAJIB di-override — pakai domain production
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  frontend-url: ${FRONTEND_URL}
+
+# ============================================================
+# CLOUDINARY
+# ============================================================
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:nayinpa6}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+  folder: portfolio
+
+# ============================================================
+# RESEND (Email)
+# ============================================================
+resend:
+  api-key: ${RESEND_API_KEY}
+  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+  from-name: ${RESEND_FROM_NAME:Portfolio}
+  to-email: ${RESEND_TO_EMAIL}
+  enabled: ${RESEND_ENABLED:true}
+
+# ============================================================
+# LOGGING (PROD)
+# ============================================================
+logging:
+  level:
+    root: WARN
+    com.anjar.portfolio: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.security: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/portfolio.log
+    max-size: 10MB
+    max-history: 7
+
+# ============================================================
+# ACTUATOR (Health Check)
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# ============================================================
+# SPRING DOCS (Opsional — Swagger)
+# ============================================================
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}

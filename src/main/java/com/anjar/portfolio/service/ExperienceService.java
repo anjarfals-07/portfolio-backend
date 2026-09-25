@@ -2,8 +2,11 @@ package com.anjar.portfolio.service;
 
 import com.anjar.portfolio.dto.ExperienceDTO;
 import com.anjar.portfolio.entity.Experience;
+import com.anjar.portfolio.entity.User;
+import com.anjar.portfolio.exception.ForbiddenException;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.ExperienceRepository;
+import com.anjar.portfolio.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,26 +18,35 @@ import java.util.List;
 public class ExperienceService {
 
     private final ExperienceRepository experienceRepository;
+    private final UserRepository userRepository;
 
-    // ===== GET ALL =====
     @Transactional(readOnly = true)
-    public List<ExperienceDTO> getAll() {
-        return experienceRepository.findAllByOrderBySortOrderAscCreatedAtDesc()
+    public List<ExperienceDTO> getAll(Long userId) {
+        return experienceRepository.findByUserIdOrderBySortOrderAscCreatedAtDesc(userId)
                 .stream().map(this::toDTO).toList();
     }
 
-    // ===== GET BY ID =====
     @Transactional(readOnly = true)
-    public ExperienceDTO getById(Long id) {
-        Experience e = experienceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Experience", id));
+    public ExperienceDTO getById(Long id, Long userId) {
+        Experience e = findOwned(id, userId);
         return toDTO(e);
     }
 
-    // ===== CREATE =====
+    // ===== GET PUBLIC (by portfolioSlug) =====
+    @Transactional(readOnly = true)
+    public List<ExperienceDTO> getPublicList(String portfolioSlug) {
+        return experienceRepository
+                .findByUserPortfolioSlugOrderBySortOrderAscCreatedAtDesc(portfolioSlug)
+                .stream().map(this::toDTO).toList();
+    }
+
     @Transactional
-    public ExperienceDTO create(ExperienceDTO dto) {
+    public ExperienceDTO create(Long userId, ExperienceDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
         Experience e = Experience.builder()
+                .user(user)
                 .year(dto.getYear())
                 .title(dto.getTitle())
                 .subtitle(dto.getSubtitle())
@@ -47,11 +59,9 @@ public class ExperienceService {
         return toDTO(experienceRepository.save(e));
     }
 
-    // ===== UPDATE =====
     @Transactional
-    public ExperienceDTO update(Long id, ExperienceDTO dto) {
-        Experience e = experienceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Experience", id));
+    public ExperienceDTO update(Long id, Long userId, ExperienceDTO dto) {
+        Experience e = findOwned(id, userId);
 
         if (dto.getYear() != null) e.setYear(dto.getYear());
         if (dto.getTitle() != null) e.setTitle(dto.getTitle());
@@ -65,16 +75,21 @@ public class ExperienceService {
         return toDTO(experienceRepository.save(e));
     }
 
-    // ===== DELETE =====
     @Transactional
-    public void delete(Long id) {
-        if (!experienceRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Experience", id);
-        }
-        experienceRepository.deleteById(id);
+    public void delete(Long id, Long userId) {
+        Experience e = findOwned(id, userId);
+        experienceRepository.delete(e);
     }
 
-    // ===== Mapper =====
+    private Experience findOwned(Long id, Long userId) {
+        Experience e = experienceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Experience", id));
+        if (!e.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("Experience ini bukan milik kamu");
+        }
+        return e;
+    }
+
     private ExperienceDTO toDTO(Experience e) {
         return ExperienceDTO.builder()
                 .id(e.getId())

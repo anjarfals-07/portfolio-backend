@@ -2,8 +2,10 @@ package com.anjar.portfolio.service;
 
 import com.anjar.portfolio.dto.ProfileDTO;
 import com.anjar.portfolio.entity.Profile;
+import com.anjar.portfolio.entity.User;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.ProfileRepository;
+import com.anjar.portfolio.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,25 +15,34 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final UserRepository userRepository;
 
-    // ===== GET (single profile) =====
     @Transactional(readOnly = true)
-    public ProfileDTO getProfile() {
-        Profile profile = profileRepository.findFirst()
+    public ProfileDTO getProfile(Long userId) {
+        Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Profile belum di-setup. Silakan isi via API atau SQL."));
         return toDTO(profile);
     }
 
-    // ===== CREATE / UPDATE (upsert) =====
-    // Kalau profile belum ada → create
-    // Kalau udah ada → update
+    @Transactional(readOnly = true)
+    public ProfileDTO getPublicProfile(String portfolioSlug) {
+        Profile profile = profileRepository.findByUserPortfolioSlug(portfolioSlug)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Profile tidak ditemukan untuk user: " + portfolioSlug));
+        return toDTO(profile);
+    }
+
     @Transactional
-    public ProfileDTO saveProfile(ProfileDTO dto) {
-        Profile profile = profileRepository.findFirst().orElse(null);
+    public ProfileDTO saveProfile(Long userId, ProfileDTO dto) {
+        Profile profile = profileRepository.findByUserId(userId).orElse(null);
 
         if (profile == null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
             profile = Profile.builder()
+                    .user(user)
                     .fullName(dto.getFullName())
                     .role(dto.getRole())
                     .bio(dto.getBio())
@@ -59,7 +70,6 @@ public class ProfileService {
         return toDTO(profileRepository.save(profile));
     }
 
-    // ===== Mapper =====
     private ProfileDTO toDTO(Profile p) {
         return ProfileDTO.builder()
                 .id(p.getId())

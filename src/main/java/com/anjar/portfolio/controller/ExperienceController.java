@@ -2,6 +2,7 @@ package com.anjar.portfolio.controller;
 
 import com.anjar.portfolio.dto.ExperienceDTO;
 import com.anjar.portfolio.service.ExperienceService;
+import com.anjar.portfolio.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,42 +19,42 @@ public class ExperienceController {
 
     private final ExperienceService experienceService;
 
-    // ===== GET ALL =====
-    // GET /api/experiences
     @GetMapping
     public ResponseEntity<List<ExperienceDTO>> getAll() {
-        return ResponseEntity.ok(experienceService.getAll());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(experienceService.getAll(userId));
     }
 
-    // ===== GET BY ID =====
-    // GET /api/experiences/{id}
+    @GetMapping("/public/{portfolioSlug}")
+    public ResponseEntity<List<ExperienceDTO>> getPublicList(@PathVariable String portfolioSlug) {
+        return ResponseEntity.ok(experienceService.getPublicList(portfolioSlug));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ExperienceDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(experienceService.getById(id));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(experienceService.getById(id, userId));
     }
 
-    // ===== CREATE =====
-    // POST /api/experiences
     @PostMapping
     public ResponseEntity<ExperienceDTO> create(@Valid @RequestBody ExperienceDTO dto) {
+        Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(experienceService.create(dto));
+                .body(experienceService.create(userId, dto));
     }
 
-    // ===== UPDATE =====
-    // PUT /api/experiences/{id}
     @PutMapping("/{id}")
     public ResponseEntity<ExperienceDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody ExperienceDTO dto) {
-        return ResponseEntity.ok(experienceService.update(id, dto));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(experienceService.update(id, userId, dto));
     }
 
-    // ===== DELETE =====
-    // DELETE /api/experiences/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        experienceService.delete(id);
+        Long userId = SecurityUtil.requireCurrentUserId();
+        experienceService.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

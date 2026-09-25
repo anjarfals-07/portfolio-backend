@@ -1,66 +1,129 @@
-#HELP.md
-#target/
-#.mvn/wrapper/maven-wrapper.jar
-#!**/src/main/**/target/
-#!**/src/test/**/target/
-#
-#### STS ###
-#.apt_generated
-#.classpath
-#.factorypath
-#.project
-#.settings
-#.springBeans
-#.sts4-cache
-#
-#### IntelliJ IDEA ###
-#.idea
-#*.iws
-#*.iml
-#*.ipr
-#
-#### NetBeans ###
-#/nbproject/private/
-#/nbbuild/
-#/dist/
-#/nbdist/
-#/.nb-gradle/
-#build/
-#!**/src/main/**/build/
-#!**/src/test/**/build/
-#
-#### VS Code ###
-#.vscode/
+# ============================================================
+# HELP
+# ============================================================
+HELP.md
 
-
-# Maven
+# ============================================================
+# MAVEN / BUILD
+# ============================================================
 target/
+build/
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Maven release
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
 release.properties
 
-# IDE
+# ============================================================
+# IDE — IntelliJ IDEA
+# ============================================================
 .idea/
 *.iml
-.vscode/
-.settings/
-.project
+*.iws
+*.ipr
+out/
+
+# ============================================================
+# IDE — Eclipse / STS
+# ============================================================
+.apt_generated
 .classpath
 .factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
+# ============================================================
+# IDE — NetBeans
+# ============================================================
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ============================================================
+# IDE — VS Code
+# ============================================================
+.vscode/
+
+# ============================================================
 # OS
+# ============================================================
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Env & secrets
+# ============================================================
+# ENV & SECRETS
+# ============================================================
 .env
+.env.local
+.env.*.local
 *.env
+
+# ============================================================
+# SPRING BOOT — CREDENTIAL (JANGAN COMMIT!)
+# ============================================================
+# Ignore semua file application-*.yml KECUALI:
+#   - application.yml (config umum)
+#   - application-dev-example.yml (template)
+#   - application-test.yml (dummy test)
+application-*.yml
+!application.yml
+!application-dev-example.yml
+!application-test.yml
+
+# Khusus file dengan credential
 application-local.yml
 application-secret.yml
 application-dev.yml
+application-prod.yml
 
-# Logs
+# ============================================================
+# LOGS
+# ============================================================
 *.log
 logs/
+log/
+
+# ============================================================
+# NODE (kalau ada frontend di repo yang sama)
+# ============================================================
+node_modules/
+dist/
+build/
+.next/
+out/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# Package manager lock (opsional — biasanya di-commit)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============================================================
+# UPLOADS (kalau ada upload lokal)
+# ============================================================
+uploads/
+uploads-test/
+
+# ============================================================
+# TEMP
+# ============================================================
+*.tmp
+*.bak
+*.swp
+*.swo
+*~

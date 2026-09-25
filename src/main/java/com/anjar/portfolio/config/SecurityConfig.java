@@ -1,16 +1,17 @@
 package com.anjar.portfolio.config;
 
-import com.anjar.portfolio.security.CustomUserDetailsService;
 import com.anjar.portfolio.security.JwtAuthFilter;
+import com.anjar.portfolio.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,76 +24,77 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final CustomUserDetailsService userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // ===== PUBLIC =====
-                        // Auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
 
-                        // Public read (GET)
-                        .requestMatchers(HttpMethod.GET, "/api/projects/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/profile").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/experiences/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/skills/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/tech-stack/**").permitAll()
+                                // Public portfolio user
+                                "/api/users/**",
 
-                        // Public write (contact form)
-                        .requestMatchers(HttpMethod.POST, "/api/messages").permitAll()
+                                // Public endpoints (prefix /public/)
+                                "/api/projects/public/**",
+                                "/api/skills/public/**",
+                                "/api/experiences/public/**",
+                                "/api/tech-stack/public/**",
+                                "/api/profile/public/**",
 
-                        // ===== ADMIN ONLY =====
-                        // Profile update
-                        .requestMatchers(HttpMethod.POST, "/api/profile").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/profile").hasRole("ADMIN")
+                                // Public blog
+                                "/api/blog/user/**",
 
-                        // Projects
-                        .requestMatchers(HttpMethod.POST, "/api/projects/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/projects/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/projects/**").hasRole("ADMIN")
+                                // Public contact form
+                                "/api/messages/public/**"
+                        ).permitAll()
 
-                        // Experiences
-                        .requestMatchers(HttpMethod.POST, "/api/experiences/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/experiences/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/experiences/**").hasRole("ADMIN")
+                        .requestMatchers(
+                                "/error",
+                                "/actuator/health"
+                        ).permitAll()
 
-                        // Skills
-                        .requestMatchers(HttpMethod.POST, "/api/skills/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/skills/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/skills/**").hasRole("ADMIN")
+                        // ===== SUPER ADMIN ONLY =====
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("SUPER_ADMIN")
 
-                        // Tech Stack
-                        .requestMatchers(HttpMethod.POST, "/api/tech-stack/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/tech-stack/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/tech-stack/**").hasRole("ADMIN")
+                        // ===== OWNER (authenticated) =====
+                        .requestMatchers("/api/me/**")
+                        .hasAnyRole("OWNER", "SUPER_ADMIN")
 
-                        // Messages (admin read/delete)
-                        .requestMatchers(HttpMethod.GET, "/api/messages/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/messages/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/messages/**").hasRole("ADMIN")
+                        // Owner endpoints (yang pakai /api/xxx tanpa /me/)
+                        .requestMatchers(
+                                "/api/projects/**",
+                                "/api/blog/me/**",
+                                "/api/skills/**",
+                                "/api/experiences/**",
+                                "/api/tech-stack/**",
+                                "/api/profile",
+                                "/api/messages"
+                        ).hasAnyRole("OWNER", "SUPER_ADMIN")
 
-                        // ===== ANY OTHER =====
+                        // ===== FALLBACK =====
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -104,20 +106,23 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-            throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000"
-        ));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
