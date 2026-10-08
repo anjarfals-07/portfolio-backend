@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesan Baru</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f3f4f6; padding: 24px 0;">
+<table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+
+    <!-- ============================================================ -->
+    <!-- HEADER                                                        -->
+    <!-- ============================================================ -->
+    <tr>
+        <td style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 40px 32px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 8px;">📬</div>
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
+                Pesan Baru!
+            </h1>
+            <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">
+                Dari contact form portfolio kamu
+            </p>
+        </td>
+    </tr>
+
+    <!-- ============================================================ -->
+    <!-- BODY                                                          -->
+    <!-- ============================================================ -->
+    <tr>
+        <td style="padding: 40px 32px;">
+
+            <p style="margin: 0 0 24px; font-size: 16px; color: #4b5563; line-height: 1.6;">
+                Halo <strong style="color: #1f2937;">{{ownerName}}</strong>,
+            </p>
+
+            <p style="margin: 0 0 24px; font-size: 16px; color: #4b5563; line-height: 1.6;">
+                Ada yang mengirim pesan lewat contact form portfolio kamu:
+            </p>
+
+            <!-- ============================================================ -->
+            <!-- SENDER INFO                                                    -->
+            <!-- ============================================================ -->
+            <table style="width: 100%; border-collapse: collapse; background: #f9fafb; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <tr>
+                    <td style="padding: 14px 20px; font-size: 13px; color: #6b7280; font-weight: 600; width: 100px; border-bottom: 1px solid #e5e7eb;">
+                        👤 Nama
+                    </td>
+                    <td style="padding: 14px 20px; font-size: 14px; color: #1f2937; font-weight: 600; border-bottom: 1px solid #e5e7eb;">
+                        {{senderName}}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 14px 20px; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 1px solid #e5e7eb;">
+                        📧 Email
+                    </td>
+                    <td style="padding: 14px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+                        <a href="mailto:{{senderEmail}}" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+                            {{senderEmail}}
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 14px 20px; font-size: 13px; color: #6b7280; font-weight: 600;">
+                        📝 Subjek
+                    </td>
+                    <td style="padding: 14px 20px; font-size: 14px; color: #1f2937; font-weight: 600;">
+                        {{subject}}
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ============================================================ -->
+            <!-- MESSAGE BODY                                                  -->
+            <!-- ============================================================ -->
+            <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px 24px; border-radius: 8px; margin-bottom: 24px;">
+                <p style="margin: 0 0 12px; font-size: 12px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                    💬 Pesan
+                </p>
+                <p style="margin: 0; font-size: 15px; color: #1e3a8a; line-height: 1.7; white-space: pre-wrap;">{{message}}</p>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- CTA BUTTON                                                    -->
+            <!-- ============================================================ -->
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{{inboxUrl}}" style="display: inline-block; background: #3b82f6; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                    📨 Buka Inbox
+                </a>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- REPLY HINT                                                    -->
+            <!-- ============================================================ -->
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 8px; margin-bottom: 24px;">
+                <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.6;">
+                    <strong>💡 Tips:</strong> Kamu bisa balas langsung via email dengan klik <strong>Reply</strong> di email ini.
+                </p>
+            </div>
+
+            <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                Salam,<br>
+                <strong style="color: #1f2937;">Portfolio Team</strong>
+            </p>
+        </td>
+    </tr>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER                                                        -->
+    <!-- ============================================================ -->
+    <tr>
+        <td style="background: #f9fafb; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0 0 8px; font-size: 12px; color: #9ca3af;">
+                Email ini dikirim otomatis dari portfolio kamu.
+            </p>
+            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                © 2026 Portfolio. All rights reserved.
+            </p>
+        </td>
+    </tr>
+
+</table>
+</body>
+</html>

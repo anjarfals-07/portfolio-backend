@@ -2,6 +2,7 @@ package com.anjar.portfolio.controller;
 
 import com.anjar.portfolio.dto.MessageDTO;
 import com.anjar.portfolio.service.MessageService;
+import com.anjar.portfolio.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,58 +20,53 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    // ===== CREATE (PUBLIC — dari contact form) =====
-    // POST /api/messages
-    @PostMapping
-    public ResponseEntity<MessageDTO> create(@Valid @RequestBody MessageDTO dto) {
-        // Force read = false saat create
+    // ===== PUBLIC — CONTACT FORM =====
+    @PostMapping("/public/{portfolioSlug}")
+    public ResponseEntity<MessageDTO> create(
+            @PathVariable String portfolioSlug,
+            @Valid @RequestBody MessageDTO dto) {
         dto.setRead(false);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(messageService.create(dto));
+                .body(messageService.create(portfolioSlug, dto));
     }
 
-    // ===== GET ALL (ADMIN) =====
-    // GET /api/messages
+    // ===== OWNER — INBOX =====
     @GetMapping
     public ResponseEntity<List<MessageDTO>> getAll() {
-        return ResponseEntity.ok(messageService.getAll());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(messageService.getAll(userId));
     }
 
-    // ===== GET UNREAD (ADMIN) =====
-    // GET /api/messages/unread
     @GetMapping("/unread")
     public ResponseEntity<List<MessageDTO>> getUnread() {
-        return ResponseEntity.ok(messageService.getUnread());
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(messageService.getUnread(userId));
     }
 
-    // ===== COUNT UNREAD (ADMIN) =====
-    // GET /api/messages/count-unread
     @GetMapping("/count-unread")
     public ResponseEntity<Map<String, Long>> countUnread() {
-        return ResponseEntity.ok(Map.of("count", messageService.countUnread()));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(Map.of("count", messageService.countUnread(userId)));
     }
 
-    // ===== GET BY ID (ADMIN — auto mark as read) =====
-    // GET /api/messages/{id}
     @GetMapping("/{id}")
     public ResponseEntity<MessageDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(messageService.getById(id));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(messageService.getById(id, userId));
     }
 
-    // ===== MARK AS READ / UNREAD (ADMIN) =====
-    // PATCH /api/messages/{id}/read?read=true
     @PatchMapping("/{id}/read")
     public ResponseEntity<MessageDTO> markAsRead(
             @PathVariable Long id,
             @RequestParam(defaultValue = "true") boolean read) {
-        return ResponseEntity.ok(messageService.markAsRead(id, read));
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(messageService.markAsRead(id, userId, read));
     }
 
-    // ===== DELETE (ADMIN) =====
-    // DELETE /api/messages/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        messageService.delete(id);
+        Long userId = SecurityUtil.requireCurrentUserId();
+        messageService.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

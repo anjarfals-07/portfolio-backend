@@ -1,0 +1,26 @@
+# ============================================================
+# DOCKER COMPOSE — pg_dump client only
+# Container ini cuma jembatan pg_dump ke Neon
+# ============================================================
+
+services:
+  pg-client:
+    image: postgres:18-alpine
+    container_name: portfolio-pg-client
+    restart: unless-stopped
+
+    # ⭐ Container idle — gak jalanin postgres, cuma "hidup" aja
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+    environment:
+      TZ: Asia/Jakarta
+
+    volumes:
+      - ./backups:/backups
+
+    networks:
+      - portfolio-net
+
+networks:
+  portfolio-net:
+    driver: bridge

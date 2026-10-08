@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id"
+      th:attr="data-theme=${theme}, data-card=${cardStyle},
+               data-badge=${badgeStyle}, data-pattern=${backgroundPattern},
+               data-layout=${layout}">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'CV - ' + ${profile.fullName}">CV</title>
+    <th:block th:replace="~{cv/fragments/_design-system :: designSystem}"/>
+    <style>
+        /* ============================================================
+           MODERN — 5 LAYOUT VARIANTS
+           ============================================================ */
+        .cv-body { display: block; }
+
+        [data-layout="sidebar-left"] .cv-body {
+            display: grid; grid-template-columns: 235px 1fr;
+        }
+        [data-layout="sidebar-left"] .cv-sidebar {
+            background: linear-gradient(160deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: var(--sidebar-text);
+            padding: var(--page-padding) var(--sp-lg);
+        }
+        [data-layout="sidebar-left"] .cv-main { padding: var(--page-padding); }
+
+        [data-layout="sidebar-right"] .cv-body {
+            display: grid; grid-template-columns: 1fr 235px;
+        }
+        [data-layout="sidebar-right"] .cv-sidebar {
+            background: linear-gradient(160deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: var(--sidebar-text);
+            padding: var(--page-padding) var(--sp-lg);
+            order: 2;
+        }
+        [data-layout="sidebar-right"] .cv-main {
+            padding: var(--page-padding); order: 1;
+        }
+
+        [data-layout="header-top"] .cv-sidebar {
+            background: linear-gradient(120deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: var(--sidebar-text);
+            padding: var(--sp-xl) var(--page-padding);
+            display: grid; grid-template-columns: auto 1fr auto;
+            gap: var(--sp-lg); align-items: center;
+        }
+        [data-layout="header-top"] .cv-main { padding: var(--page-padding); }
+        [data-layout="header-top"] .cv-sidebar .cv-name,
+        [data-layout="header-top"] .cv-sidebar .cv-role { text-align: left; margin-bottom: 2px; }
+        [data-layout="header-top"] .cv-sidebar .cv-avatar { margin: 0; }
+        [data-layout="header-top"] .cv-sidebar h3 { display: none; }
+        [data-layout="header-top"] .cv-sidebar .sidebar-block { display: inline-block; margin-right: var(--sp-md); }
+
+        [data-layout="two-col"] .cv-body {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: var(--sp-lg); padding: var(--page-padding);
+        }
+        [data-layout="two-col"] .cv-sidebar {
+            background: transparent; color: var(--text); padding: 0;
+        }
+        [data-layout="two-col"] .cv-main { padding: 0; }
+        [data-layout="two-col"] .cv-sidebar h3 { color: var(--text-heading); border-color: var(--divider); }
+        [data-layout="two-col"] .cv-contact-item { color: var(--text); }
+        [data-layout="two-col"] .cv-skill-bar { background: var(--divider); }
+        [data-layout="two-col"] .cv-skill-bar-fill { background: var(--accent); }
+        [data-layout="two-col"] .cv-chip { background: var(--accent-light); color: var(--accent-dark); }
+
+        [data-layout="timeline"] .cv-body { padding: var(--page-padding); }
+        [data-layout="timeline"] .cv-sidebar {
+            background: transparent; color: var(--text);
+            padding: 0; margin-bottom: var(--sp-lg);
+        }
+        [data-layout="timeline"] .cv-main { padding: 0; }
+        [data-layout="timeline"] .cv-sidebar h3 { color: var(--text-heading); border-color: var(--divider); }
+        [data-layout="timeline"] .cv-exp-item {
+            position: relative; padding-left: 28px;
+            border-left: 2px solid var(--accent-light);
+            padding-bottom: var(--sp-md);
+        }
+        [data-layout="timeline"] .cv-exp-item::before {
+            content: ''; position: absolute; left: -7px; top: 4px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--accent); border: 2px solid var(--bg);
+        }
+
+        .cv-avatar {
+            width: 92px; height: 92px; border-radius: 50%;
+            object-fit: cover; display: block;
+            margin: 0 auto var(--sp-md);
+            border: 3px solid rgba(255,255,255,0.35);
+        }
+        .cv-name { font-size: 15pt; font-weight: 800; text-align: center; line-height: 1.15; margin-bottom: 3px; }
+        .cv-role { font-size: 9.5pt; text-align: center; color: var(--sidebar-muted); margin-bottom: var(--sp-md); }
+        .cv-sidebar h3 {
+            font-size: 8pt; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
+            padding-bottom: 5px; margin-bottom: var(--sp-sm);
+            border-bottom: 1px solid rgba(255,255,255,0.25);
+        }
+        .cv-contact-item {
+            display: flex; gap: 8px; align-items: flex-start;
+            font-size: 8.5pt; margin-bottom: 6px; word-break: break-word;
+        }
+        .cv-contact-item i { margin-top: 2px; flex-shrink: 0; }
+
+        .cv-skill-mini { margin-bottom: 7px; }
+        .cv-skill-mini-name {
+            font-size: 8.5pt; display: flex; justify-content: space-between;
+            margin-bottom: 3px;
+        }
+        .cv-skill-bar {
+            height: 3px; background: rgba(255,255,255,0.22);
+            border-radius: 2px; overflow: hidden;
+        }
+        .cv-skill-bar-fill { height: 100%; background: #fff; border-radius: 2px; }
+
+        .cv-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+        .cv-chip {
+            font-size: 7.5pt; padding: 2px 7px;
+            background: rgba(255,255,255,0.16); border-radius: 10px;
+        }
+
+        .cv-card-meta {
+            display: flex; align-items: center; gap: 8px;
+            flex-wrap: wrap; margin-top: 4px;
+            font-size: 8.5pt; color: var(--muted);
+        }
+        .cv-card-meta-item {
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .cv-card-meta-item i { font-size: 8pt; }
+
+        /* ⭐ Tags untuk Experiences */
+        .cv-card-tags {
+            display: flex; flex-wrap: wrap; gap: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cv-page">
+    <div class="cv-body">
+
+        <!-- SIDEBAR -->
+        <aside class="cv-sidebar">
+            <img th:if="${profile.avatarUrl != null}"
+                 th:src="${profile.avatarUrl}" class="cv-avatar" alt=""/>
+            <h1 class="cv-name" th:text="${profile.fullName}">Nama</h1>
+            <p class="cv-role" th:text="${profile.role}">Role</p>
+
+            <!-- KONTAK -->
+            <div class="sidebar-block"
+                 th:if="${profile.email != null || profile.phone != null || profile.city != null}">
+                <h3>Kontak</h3>
+                <div class="cv-contact-item" th:if="${profile.email != null}">
+                    <i class="pi pi-envelope"></i><span th:text="${profile.email}"></span>
+                </div>
+                <div class="cv-contact-item" th:if="${profile.phone != null}">
+                    <i class="pi pi-phone"></i><span th:text="${profile.phone}"></span>
+                </div>
+                <div class="cv-contact-item" th:if="${profile.city != null}">
+                    <i class="pi pi-map-marker"></i><span th:text="${profile.city}"></span>
+                </div>
+                <div class="cv-contact-item" th:if="${profile.location != null}">
+                    <i class="pi pi-home"></i><span th:text="${profile.location}"></span>
+                </div>
+            </div>
+
+            <!-- SOSIAL -->
+            <div class="sidebar-block"
+                 th:if="${profile.socials != null && !profile.socials.isEmpty()}">
+                <h3>Sosial</h3>
+                <div class="cv-contact-item" th:each="s : ${profile.socials}">
+                    <i th:class="${s['icon']}"></i><span th:text="${s['label']}"></span>
+                </div>
+            </div>
+
+            <!-- PERSONAL INFO -->
+            <div class="sidebar-block" th:if="${showPersonalInfo && (
+              profile.religion != null ||
+              profile.maritalStatus != null ||
+              profile.birthDate != null ||
+              profile.birthPlace != null ||
+              profile.nationality != null ||
+              profile.gender != null)}">
+                <h3>Data Pribadi</h3>
+
+                <div class="cv-contact-item"
+                     th:if="${profile.birthPlace != null || profile.birthDate != null}">
+                    <i class="pi pi-calendar"></i>
+                    <span th:text="${(profile.birthPlace != null ? profile.birthPlace : '') +
+                          (profile.birthPlace != null && profile.birthDate != null ? ', ' : '') +
+                          (profile.birthDate != null ? #temporals.format(profile.birthDate, 'dd MMM yyyy') : '')}"></span>
+                </div>
+
+                <div class="cv-contact-item" th:if="${profile.religion != null}">
+                    <i class="pi pi-heart"></i>
+                    <span th:text="${profile.religion}"></span>
+                </div>
+
+                <div class="cv-contact-item" th:if="${profile.maritalStatus != null}">
+                    <i class="pi pi-user"></i>
+                    <span th:text="${profile.maritalStatus}"></span>
+                </div>
+
+                <div class="cv-contact-item" th:if="${profile.nationality != null}">
+                    <i class="pi pi-flag"></i>
+                    <span th:text="${profile.nationality}"></span>
+                </div>
+
+                <div class="cv-contact-item" th:if="${profile.gender != null}">
+                    <i class="pi pi-user-plus"></i>
+                    <span th:text="${profile.gender}"></span>
+                </div>
+            </div>
+
+            <!-- SKILLS -->
+            <div class="sidebar-block" th:if="${showSkills && !skillsByCategory.isEmpty()}">
+                <h3>Keahlian</h3>
+                <div th:each="entry : ${skillsByCategory}">
+                    <div class="cv-skill-mini" th:each="skill : ${entry.value}">
+                        <div class="cv-skill-mini-name"><span th:text="${skill.name}"></span></div>
+                        <div class="cv-skill-bar">
+                            <div class="cv-skill-bar-fill"
+                                 th:style="'width:' + ${skill.level != null ? skill.level * 20 : 80} + '%'"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TECH STACK -->
+            <div class="sidebar-block" th:if="${showTechStack && !techStacks.isEmpty()}">
+                <h3>Tech Stack</h3>
+                <div class="cv-chips">
+                    <span class="cv-chip" th:each="t : ${techStacks}" th:text="${t.name}"></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="cv-main">
+
+            <!-- BIO -->
+            <section class="cv-section" th:if="${showBio && profile.bio != null}">
+                <h2 class="cv-section-title"><i class="pi pi-user"></i> Tentang Saya</h2>
+                <div class="cv-card"><p class="cv-card-desc" th:text="${profile.bio}"></p></div>
+            </section>
+
+            <!-- WORK EXPERIENCE -->
+            <section class="cv-section" th:if="${showWorkExperience && !workExperiences.isEmpty()}">
+                <h2 class="cv-section-title"><i class="pi pi-briefcase"></i> Pengalaman Kerja</h2>
+                <div th:each="work : ${workExperiences}"
+                     th:classappend="${layout == 'timeline'} ? 'cv-exp-item' : 'cv-card'">
+                    <div class="cv-card-header">
+                        <div>
+                            <div class="cv-card-title" th:text="${work.position}"></div>
+                            <div class="cv-card-subtitle" th:text="${work.company}"></div>
+                        </div>
+                        <div class="cv-card-period"
+                             th:text="${work.startDate != null ? #temporals.format(work.startDate,'MMM yyyy') : ''}
+                         + ' – ' +
+                         ${work.currentlyHere ? 'Sekarang' : (work.endDate != null ? #temporals.format(work.endDate,'MMM yyyy') : '')}"></div>
+                    </div>
+
+                    <div class="cv-card-meta"
+                         th:if="${work.location != null || work.employmentType != null}">
+            <span th:if="${work.location != null}" class="cv-card-meta-item">
+              <i class="pi pi-map-marker"></i>
+              <span th:text="${work.location}"></span>
+            </span>
+                        <span th:if="${work.employmentType != null}"
+                              class="cv-badge" th:text="${work.employmentType}"></span>
+                    </div>
+
+                    <p class="cv-card-desc" th:if="${work.description != null}"
+                       th:text="${work.description}"></p>
+                </div>
+            </section>
+
+            <!-- EDUCATION -->
+            <section class="cv-section" th:if="${showEducation && !educations.isEmpty()}">
+                <h2 class="cv-section-title"><i class="pi pi-graduation-cap"></i> Pendidikan</h2>
+                <div class="cv-card" th:each="edu : ${educations}">
+                    <div class="cv-card-header">
+                        <div>
+                            <div class="cv-card-title" th:text="${edu.institution}"></div>
+                            <div class="cv-card-subtitle"
+                                 th:if="${edu.degree != null || edu.fieldOfStudy != null}"
+                                 th:text="${(edu.degree != null ? edu.degree : '') +
+                           (edu.degree != null && edu.fieldOfStudy != null ? ' · ' : '') +
+                           (edu.fieldOfStudy != null ? edu.fieldOfStudy : '')}"></div>
+                        </div>
+                        <div class="cv-card-period"
+                             th:text="${edu.startDate != null ? #temporals.format(edu.startDate,'MMM yyyy') : ''}
+                         + ' – ' +
+                         ${edu.endDate != null ? #temporals.format(edu.endDate,'MMM yyyy') : 'Sekarang'}"></div>
+                    </div>
+
+                    <div class="cv-card-meta" th:if="${edu.gpa != null}">
+                        <span class="cv-badge">GPA: <span th:text="${edu.gpa}"></span></span>
+                    </div>
+
+                    <p class="cv-card-desc" th:if="${edu.description != null}"
+                       th:text="${edu.description}"></p>
+                </div>
+            </section>
+
+            <!-- ⭐ EXPERIENCES (Achievement) — FIXED -->
+            <section class="cv-section" th:if="${showExperiences && !experiences.isEmpty()}">
+                <h2 class="cv-section-title"><i class="pi pi-star"></i> Pencapaian</h2>
+
+                <div th:each="exp : ${experiences}"
+                     th:classappend="${layout == 'timeline'} ? 'cv-exp-item' : 'cv-card'">
+                    <div class="cv-card-header">
+                        <div>
+                            <div class="cv-card-title" th:text="${exp.title}"></div>
+                            <div class="cv-card-subtitle"
+                                 th:if="${exp.subtitle != null}"
+                                 th:text="${exp.subtitle}"></div>
+                        </div>
+                        <div class="cv-card-period"
+                             th:if="${exp.year != null}"
+                             th:text="${exp.year}"></div>
+                    </div>
+
+                    <p class="cv-card-desc" th:if="${exp.description != null}"
+                       th:text="${exp.description}"></p>
+
+                    <div class="cv-card-tags" style="margin-top:6px"
+                         th:if="${exp.tags != null && !exp.tags.isEmpty()}">
+                        <span class="cv-badge" th:each="tag : ${exp.tags}" th:text="${tag}"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PROJECTS -->
+            <section class="cv-section" th:if="${showProjects && !projects.isEmpty()}">
+                <h2 class="cv-section-title"><i class="pi pi-folder"></i> Proyek</h2>
+                <div class="cv-card" th:each="proj : ${projects}">
+                    <div class="cv-card-title" th:text="${proj.title}"></div>
+                    <p class="cv-card-desc" th:if="${proj.description != null}"
+                       th:text="${proj.description}"></p>
+                    <div style="margin-top:6px"
+                         th:if="${proj.techStack != null && !proj.techStack.isEmpty()}">
+                        <span class="cv-badge" th:each="t : ${proj.techStack}" th:text="${t}"></span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="cv-footer"
+                 th:text="'Dibuat ' + ${generatedAt} + ' · ' + ${portfolioUrl}"></div>
+
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

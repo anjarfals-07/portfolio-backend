@@ -2,8 +2,11 @@ package com.anjar.portfolio.service;
 
 import com.anjar.portfolio.dto.ProjectDTO;
 import com.anjar.portfolio.entity.Project;
+import com.anjar.portfolio.entity.User;
+import com.anjar.portfolio.exception.ForbiddenException;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.ProjectRepository;
+import com.anjar.portfolio.repository.UserRepository;
 import com.anjar.portfolio.util.SlugUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,50 +19,67 @@ import java.util.List;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
-    // ===== GET ALL =====
+    // ===== GET ALL (by userId) =====
     @Transactional(readOnly = true)
-    public List<ProjectDTO> getAllProjects(boolean onlyPublished) {
-        List<Project> projects = onlyPublished
-                ? projectRepository.findByPublishedTrueOrderByCreatedAtDesc()
-                : projectRepository.findAll();
-        return projects.stream().map(this::toDTO).toList();
-    }
-
-    // ===== GET FEATURED =====
-    @Transactional(readOnly = true)
-    public List<ProjectDTO> getFeaturedProjects() {
-        return projectRepository.findByFeaturedTrueAndPublishedTrueOrderByCreatedAtDesc()
+    public List<ProjectDTO> getAllProjects(Long userId) {
+        return projectRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream().map(this::toDTO).toList();
     }
 
-    // ===== GET BY ID =====
+    // ===== GET PUBLISHED (by userId) =====
     @Transactional(readOnly = true)
-    public ProjectDTO getProjectById(Long id) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+    public List<ProjectDTO> getPublishedProjects(Long userId) {
+        return projectRepository.findByUserIdAndPublishedTrueOrderByCreatedAtDesc(userId)
+                .stream().map(this::toDTO).toList();
+    }
+
+    // ===== GET FEATURED (by userId) =====
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getFeaturedProjects(Long userId) {
+        return projectRepository.findByUserIdAndFeaturedTrueAndPublishedTrueOrderByCreatedAtDesc(userId)
+                .stream().map(this::toDTO).toList();
+    }
+
+    // ===== GET BY ID (ownership check) =====
+    @Transactional(readOnly = true)
+    public ProjectDTO getProjectById(Long id, Long userId) {
+        Project project = findOwnedProject(id, userId);
         return toDTO(project);
     }
 
-    // ===== GET BY SLUG =====
+    // ===== GET BY SLUG (public, by username) =====
     @Transactional(readOnly = true)
-    public ProjectDTO getProjectBySlug(String slug) {
-        Project project = projectRepository.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", "slug", slug));
+    public ProjectDTO getPublicProject(String portfolioSlug, String projectSlug) {
+        Project project = projectRepository
+                .findByUserPortfolioSlugAndSlugAndPublishedTrue(portfolioSlug, projectSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", "slug", projectSlug));
         return toDTO(project);
+    }
+
+    // ===== GET PUBLIC LIST (by portfolioSlug) — BARU =====
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getPublicProjects(String portfolioSlug) {
+        return projectRepository
+                .findByUserPortfolioSlugAndPublishedTrueOrderByCreatedAtDesc(portfolioSlug)
+                .stream().map(this::toDTO).toList();
     }
 
     // ===== CREATE =====
     @Transactional
-    public ProjectDTO createProject(ProjectDTO dto) {
+    public ProjectDTO createProject(Long userId, ProjectDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
         String slug = (dto.getSlug() == null || dto.getSlug().isBlank())
                 ? SlugUtil.toSlug(dto.getTitle())
                 : SlugUtil.toSlug(dto.getSlug());
 
-        // Pastikan slug unik
-        String uniqueSlug = ensureUniqueSlug(slug, null);
+        String uniqueSlug = ensureUniqueSlug(userId, slug, null);
 
         Project project = Project.builder()
+                .user(user)
                 .title(dto.getTitle())
                 .slug(uniqueSlug)
                 .description(dto.getDescription())
@@ -75,17 +95,16 @@ public class ProjectService {
         return toDTO(projectRepository.save(project));
     }
 
-    // ===== UPDATE =====
+    // ===== UPDATE (ownership check) =====
     @Transactional
-    public ProjectDTO updateProject(Long id, ProjectDTO dto) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+    public ProjectDTO updateProject(Long id, Long userId, ProjectDTO dto) {
+        Project project = findOwnedProject(id, userId);
 
         if (dto.getTitle() != null) project.setTitle(dto.getTitle());
 
         if (dto.getSlug() != null && !dto.getSlug().isBlank()) {
             String slug = SlugUtil.toSlug(dto.getSlug());
-            project.setSlug(ensureUniqueSlug(slug, id));
+            project.setSlug(ensureUniqueSlug(userId, slug, id));
         }
 
         if (dto.getDescription() != null) project.setDescription(dto.getDescription());
@@ -100,16 +119,45 @@ public class ProjectService {
         return toDTO(projectRepository.save(project));
     }
 
-    // ===== DELETE =====
+    // ===== DELETE (ownership check) =====
     @Transactional
-    public void deleteProject(Long id) {
-        if (!projectRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Project", id);
-        }
-        projectRepository.deleteById(id);
+    public void deleteProject(Long id, Long userId) {
+        Project project = findOwnedProject(id, userId);
+        projectRepository.delete(project);
     }
 
-    // ===== HELPER: Mapping Entity -> DTO =====
+
+
+    // ===== HELPER: Find owned project =====
+    private Project findOwnedProject(Long id, Long userId) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+
+        if (!project.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("Project ini bukan milik kamu");
+        }
+        return project;
+    }
+
+    // ===== HELPER: Unique slug PER USER =====
+    private String ensureUniqueSlug(Long userId, String baseSlug, Long excludeId) {
+        String slug = baseSlug;
+        int counter = 1;
+
+        while (projectRepository.existsByUserIdAndSlug(userId, slug)) {
+            if (excludeId != null) {
+                Project existing = projectRepository.findByUserIdAndSlug(userId, slug).orElse(null);
+                if (existing != null && existing.getId().equals(excludeId)) {
+                    return slug;
+                }
+            }
+            counter++;
+            slug = baseSlug + "-" + counter;
+        }
+        return slug;
+    }
+
+    // ===== Mapper =====
     private ProjectDTO toDTO(Project p) {
         return ProjectDTO.builder()
                 .id(p.getId())
@@ -126,24 +174,5 @@ public class ProjectService {
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
                 .build();
-    }
-
-    // ===== HELPER: Pastikan slug unik =====
-    private String ensureUniqueSlug(String baseSlug, Long excludeId) {
-        String slug = baseSlug;
-        int counter = 1;
-
-        while (projectRepository.existsBySlug(slug)) {
-            // Kalau update dan slug sama dengan dirinya sendiri, skip
-            if (excludeId != null) {
-                Project existing = projectRepository.findBySlug(slug).orElse(null);
-                if (existing != null && existing.getId().equals(excludeId)) {
-                    return slug;
-                }
-            }
-            counter++;
-            slug = baseSlug + "-" + counter;
-        }
-        return slug;
     }
 }

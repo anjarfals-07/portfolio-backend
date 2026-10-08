@@ -9,5 +9,14 @@ import java.util.List;
 @Repository
 public interface TechStackRepository extends JpaRepository<TechStack, Long> {
 
+    // ===== MULTI-TENANT (BARU) =====
+    List<TechStack> findByUserIdOrderBySortOrderAscNameAsc(Long userId);
+
+    long countByUserId(Long userId);
+
+    // ===== PUBLIC (by user slug) (BARU) =====
+    List<TechStack> findByUserPortfolioSlugOrderBySortOrderAscNameAsc(String portfolioSlug);
+
+    // ===== LAMA =====
     List<TechStack> findAllByOrderBySortOrderAscNameAsc();
 }

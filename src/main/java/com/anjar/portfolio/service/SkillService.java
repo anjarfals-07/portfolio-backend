@@ -2,8 +2,11 @@ package com.anjar.portfolio.service;
 
 import com.anjar.portfolio.dto.SkillDTO;
 import com.anjar.portfolio.entity.Skill;
+import com.anjar.portfolio.entity.User;
+import com.anjar.portfolio.exception.ForbiddenException;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.SkillRepository;
+import com.anjar.portfolio.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,21 +20,29 @@ import java.util.Map;
 public class SkillService {
 
     private final SkillRepository skillRepository;
+    private final UserRepository userRepository;
 
-    // ===== GET ALL (flat list) =====
     @Transactional(readOnly = true)
-    public List<SkillDTO> getAll() {
-        return skillRepository.findAllByOrderByCategoryAscSortOrderAsc()
+    public List<SkillDTO> getAll(Long userId) {
+        return skillRepository.findByUserIdOrderByCategoryAscSortOrderAsc(userId)
                 .stream().map(this::toDTO).toList();
     }
 
-    // ===== GET GROUPED BY CATEGORY =====
-    // Output: { "Backend": { icon, items: [...] }, "Frontend": {...} }
     @Transactional(readOnly = true)
-    public Map<String, Map<String, Object>> getGrouped() {
-        List<Skill> all = skillRepository.findAllByOrderByCategoryAscSortOrderAsc();
-        Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
+    public Map<String, Map<String, Object>> getGrouped(Long userId) {
+        List<Skill> all = skillRepository.findByUserIdOrderByCategoryAscSortOrderAsc(userId);
+        return groupSkills(all);
+    }
 
+    @Transactional(readOnly = true)
+    public Map<String, Map<String, Object>> getPublicGrouped(String portfolioSlug) {
+        List<Skill> all = skillRepository
+                .findByUserPortfolioSlugOrderByCategoryAscSortOrderAsc(portfolioSlug);
+        return groupSkills(all);
+    }
+
+    private Map<String, Map<String, Object>> groupSkills(List<Skill> all) {
+        Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
         for (Skill s : all) {
             String category = s.getCategory() != null ? s.getCategory() : "Other";
             grouped.computeIfAbsent(category, k -> {
@@ -48,18 +59,18 @@ public class SkillService {
         return grouped;
     }
 
-    // ===== GET BY ID =====
     @Transactional(readOnly = true)
-    public SkillDTO getById(Long id) {
-        Skill s = skillRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill", id));
-        return toDTO(s);
+    public SkillDTO getById(Long id, Long userId) {
+        return toDTO(findOwned(id, userId));
     }
 
-    // ===== CREATE =====
     @Transactional
-    public SkillDTO create(SkillDTO dto) {
+    public SkillDTO create(Long userId, SkillDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
         Skill s = Skill.builder()
+                .user(user)
                 .category(dto.getCategory())
                 .categoryIcon(dto.getCategoryIcon())
                 .name(dto.getName())
@@ -69,11 +80,9 @@ public class SkillService {
         return toDTO(skillRepository.save(s));
     }
 
-    // ===== UPDATE =====
     @Transactional
-    public SkillDTO update(Long id, SkillDTO dto) {
-        Skill s = skillRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill", id));
+    public SkillDTO update(Long id, Long userId, SkillDTO dto) {
+        Skill s = findOwned(id, userId);
 
         if (dto.getCategory() != null) s.setCategory(dto.getCategory());
         if (dto.getCategoryIcon() != null) s.setCategoryIcon(dto.getCategoryIcon());
@@ -84,16 +93,21 @@ public class SkillService {
         return toDTO(skillRepository.save(s));
     }
 
-    // ===== DELETE =====
     @Transactional
-    public void delete(Long id) {
-        if (!skillRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Skill", id);
-        }
-        skillRepository.deleteById(id);
+    public void delete(Long id, Long userId) {
+        Skill s = findOwned(id, userId);
+        skillRepository.delete(s);
     }
 
-    // ===== Mapper =====
+    private Skill findOwned(Long id, Long userId) {
+        Skill s = skillRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill", id));
+        if (!s.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("Skill ini bukan milik kamu");
+        }
+        return s;
+    }
+
     private SkillDTO toDTO(Skill s) {
         return SkillDTO.builder()
                 .id(s.getId())

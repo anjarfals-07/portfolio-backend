@@ -21,6 +21,14 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ===== RECIPIENT (Multi-Tenant) =====
+    // Guest submit contact form ke /anjar/contact
+    // → message.user = anjar (penerima)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    // ===== SENDER INFO (dari guest, bukan User entity) =====
     @Column(nullable = false, length = 100)
     private String name;
 

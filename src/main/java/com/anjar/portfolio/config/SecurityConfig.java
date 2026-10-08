@@ -1,16 +1,18 @@
 package com.anjar.portfolio.config;
 
-import com.anjar.portfolio.security.CustomUserDetailsService;
 import com.anjar.portfolio.security.JwtAuthFilter;
+import com.anjar.portfolio.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,79 +24,205 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * SecurityConfig — URL-level security.
+ *
+ * ⭐ STRATEGI:
+ * - /api/public/**          → PUBLIC (platform info + custom domain lookup)
+ * - /api/auth/**            → PUBLIC (login/register) kecuali /me
+ * - /api/payment-methods    → PUBLIC GET (list metode bayar untuk register)
+ * - /api/users/**           → PUBLIC (portfolio GET)
+ * - /api/webhook/**         → PUBLIC (verify di service)
+ * - /api/payment/status/**  → PUBLIC (polling setelah register)
+ * - /api/payment/**         → OWNER + SUPER_ADMIN
+ * - /api/owner/**           → OWNER + SUPER_ADMIN (custom domain, dll)
+ * - /api/admin/**           → SUPER_ADMIN only
+ * - /api/me/**              → OWNER + SUPER_ADMIN
+ * - /uploads/**             → PUBLIC (static files, handled by WebMvcConfig)
+ * - Fallback                → authenticated
+ */
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final CustomUserDetailsService userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService;
 
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
+
+    // ============================================================
+    // SECURITY FILTER CHAIN
+    // ============================================================
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authorizeHttpRequests(auth -> auth
-                        // ===== PUBLIC =====
-                        // Auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // ============================================================
+                        // 1. PUBLIC — AUTH
+                        // ============================================================
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/forgot-password",
+                                "/api/auth/verify-reset-token",
+                                "/api/auth/reset-password"
+                        ).permitAll()
 
-                        // Public read (GET)
-                        .requestMatchers(HttpMethod.GET, "/api/projects/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/profile").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/experiences/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/skills/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/tech-stack/**").permitAll()
+                        // ============================================================
+                        // 2. ⭐ PUBLIC — PLATFORM INFO + CUSTOM DOMAIN LOOKUP
+                        //    Termasuk: /api/public/tenant-by-domain
+                        // ============================================================
+                        .requestMatchers("/api/public/**").permitAll()
 
-                        // Public write (contact form)
-                        .requestMatchers(HttpMethod.POST, "/api/messages").permitAll()
+                        // ============================================================
+                        // 3. PUBLIC — PAYMENT METHODS (untuk halaman register)
+                        // ============================================================
+                        .requestMatchers(HttpMethod.GET, "/api/payment-methods")
+                        .permitAll()
 
-                        // ===== ADMIN ONLY =====
-                        // Profile update
-                        .requestMatchers(HttpMethod.POST, "/api/profile").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/profile").hasRole("ADMIN")
+                        // ============================================================
+                        // 4. PUBLIC — STATIC & UTILITY
+                        // ============================================================
+                        .requestMatchers(
+                                "/uploads/**",
+                                "/error",
+                                "/actuator/health",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
 
-                        // Projects
-                        .requestMatchers(HttpMethod.POST, "/api/projects/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/projects/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/projects/**").hasRole("ADMIN")
+                        // ============================================================
+                        // 5. PUBLIC — WEBHOOK (Midtrans, dll)
+                        // ============================================================
+                        .requestMatchers("/api/webhook/**").permitAll()
 
-                        // Experiences
-                        .requestMatchers(HttpMethod.POST, "/api/experiences/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/experiences/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/experiences/**").hasRole("ADMIN")
+                        // ============================================================
+                        // 6. PUBLIC — PAYMENT STATUS (polling)
+                        // ============================================================
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/payment/status/**"
+                        ).permitAll()
 
-                        // Skills
-                        .requestMatchers(HttpMethod.POST, "/api/skills/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/skills/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/skills/**").hasRole("ADMIN")
+                        // ============================================================
+                        // 7. PUBLIC — USER PUBLIC API (portfolio)
+                        // ============================================================
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/users/**"
+                        ).permitAll()
 
-                        // Tech Stack
-                        .requestMatchers(HttpMethod.POST, "/api/tech-stack/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/tech-stack/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/tech-stack/**").hasRole("ADMIN")
+                        // ============================================================
+                        // 8. PUBLIC — CONTACT FORM (POST)
+                        // ============================================================
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/users/*/messages"
+                        ).permitAll()
 
-                        // Messages (admin read/delete)
-                        .requestMatchers(HttpMethod.GET, "/api/messages/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/messages/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/messages/**").hasRole("ADMIN")
+                        // ============================================================
+                        // 9. PUBLIC — PORTFOLIO DATA (GET only)
+                        // ============================================================
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/projects/public/**",
+                                "/api/skills/public/**",
+                                "/api/experiences/public/**",
+                                "/api/tech-stack/public/**",
+                                "/api/profile/public/**",
+                                "/api/blog/user/**",
+                                "/api/themes/presets",
+                                "/api/themes/public/**",
+                                "/api/theme/presets",
+                                "/api/theme/user/**"
+                        ).permitAll()
 
-                        // ===== ANY OTHER =====
+                        // ============================================================
+                        // 10. PUBLIC — CONTACT FORM (POST only)
+                        // ============================================================
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/messages/public/**"
+                        ).permitAll()
+
+                        // ============================================================
+                        // 11. /api/auth/me — WAJIB LOGIN
+                        // ============================================================
+                        .requestMatchers("/api/auth/me").authenticated()
+
+                        // ============================================================
+                        // 12. ADMIN ONLY
+                        // ============================================================
+                        .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
+
+                        // ============================================================
+                        // 13. PAYMENT — OWNER + SUPER_ADMIN
+                        // ============================================================
+                        .requestMatchers("/api/payment/**")
+                        .hasAnyRole("OWNER", "SUPER_ADMIN")
+
+                        // ============================================================
+                        // 14. ⭐ OWNER DOMAIN — OWNER + SUPER_ADMIN
+                        //     Custom domain management
+                        // ============================================================
+                        .requestMatchers("/api/owner/**")
+                        .hasAnyRole("OWNER", "SUPER_ADMIN")
+
+                        // ============================================================
+                        // 15. OWNER + SUPER_ADMIN (existing)
+                        // ============================================================
+                        .requestMatchers(
+                                "/api/me/**",
+                                "/api/themes/me/**",
+                                "/api/themes/me",
+                                "/api/projects/**",
+                                "/api/blog/me/**",
+                                "/api/skills/**",
+                                "/api/experiences/**",
+                                "/api/tech-stack/**",
+                                "/api/profile",
+                                "/api/messages"
+                        ).hasAnyRole("OWNER", "SUPER_ADMIN")
+
+                        // ============================================================
+                        // 16. FALLBACK
+                        // ============================================================
                         .anyRequest().authenticated()
                 )
+
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((req, res, e) -> {
+                            res.setStatus(401);
+                            res.setContentType("application/json");
+                            res.setCharacterEncoding("UTF-8");
+                            res.getWriter().write(
+                                    "{\"error\":\"Unauthorized\",\"message\":\"Authentication required\",\"status\":401}"
+                            );
+                        })
+                        .accessDeniedHandler((req, res, e) -> {
+                            res.setStatus(403);
+                            res.setContentType("application/json");
+                            res.setCharacterEncoding("UTF-8");
+                            res.getWriter().write(
+                                    "{\"error\":\"Forbidden\",\"message\":\"Access denied\",\"status\":403}"
+                            );
+                        })
+                )
+
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
+    // ============================================================
+    // AUTH PROVIDER
+    // ============================================================
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -104,21 +232,30 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-            throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
     @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    // ============================================================
+    // CORS
+    // ============================================================
+    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000"
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

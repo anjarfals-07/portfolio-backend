@@ -9,12 +9,15 @@ import java.util.List;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    // Sort by created_at DESC (terbaru dulu)
+    // ===== MULTI-TENANT (BARU) =====
+    List<Message> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<Message> findByUserIdAndReadOrderByCreatedAtDesc(Long userId, Boolean read);
+
+    long countByUserIdAndReadFalse(Long userId);
+
+    // ===== LAMA =====
     List<Message> findAllByOrderByCreatedAtDesc();
-
-    // Filter by read status
     List<Message> findByReadOrderByCreatedAtDesc(Boolean read);
-
-    // Count unread (buat badge di sidebar admin)
     long countByReadFalse();
 }

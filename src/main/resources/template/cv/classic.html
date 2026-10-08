@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id"
+      th:attr="data-theme=${theme}, data-card='none',
+               data-badge='minimal', data-pattern='none'">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'CV - ' + ${profile.fullName}">CV</title>
+    <th:block th:replace="~{cv/fragments/_design-system :: designSystem}"/>
+    <style>
+        :root {
+            --card-bg: transparent;
+            --card-border: none;
+            --card-shadow: none;
+            --card-radius: 0;
+            --card-padding: 0 0 var(--sp-sm) 0;
+            --icon-size: 0;
+            --badge-bg: transparent;
+            --badge-text: var(--text);
+            --badge-padding: 0;
+            --badge-radius: 0;
+        }
+        .cv-page { padding: 50px 55px; }
+
+        .cl-header {
+            text-align: center; padding-bottom: var(--sp-md);
+            border-bottom: 2px solid var(--text-heading);
+            margin-bottom: var(--sp-lg);
+        }
+        .cl-name {
+            font-size: 20pt; font-weight: 800;
+            letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px;
+        }
+        .cl-role {
+            font-size: 10.5pt; font-style: italic;
+            color: var(--muted); margin-bottom: var(--sp-sm);
+        }
+        .cl-contact { font-size: 8.5pt; color: var(--text); line-height: 1.6; }
+        .cl-contact .sep { color: var(--divider); margin: 0 5px; }
+
+        .cl-personal {
+            margin-top: 6px;
+            font-size: 8.5pt;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .cl-personal .sep {
+            color: var(--divider);
+            margin: 0 5px;
+        }
+
+        .cl-section { margin-bottom: var(--sp-md); }
+        .cl-section-title {
+            font-size: 11pt; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            border-bottom: 1px solid var(--text-heading);
+            padding-bottom: 3px; margin-bottom: var(--sp-sm);
+        }
+        .cl-skills-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 3px 30px;
+        }
+        .cl-skill-cat {
+            font-weight: 700; font-size: 9.5pt;
+            margin-top: var(--sp-sm); margin-bottom: 2px;
+        }
+
+        .cv-card-meta {
+            font-size: 9pt;
+            color: var(--muted);
+            font-style: italic;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cv-page">
+
+    <header class="cl-header">
+        <h1 class="cl-name" th:text="${profile.fullName}"></h1>
+        <p class="cl-role" th:text="${profile.role}"></p>
+
+        <div class="cl-contact">
+            <span th:if="${profile.email != null}" th:text="${profile.email}"></span>
+            <span class="sep" th:if="${profile.email != null && profile.phone != null}">•</span>
+            <span th:if="${profile.phone != null}" th:text="${profile.phone}"></span>
+            <span class="sep" th:if="${profile.phone != null && profile.city != null}">•</span>
+            <span th:if="${profile.city != null}" th:text="${profile.city}"></span>
+        </div>
+
+        <div class="cl-contact"
+             th:if="${profile.socials != null && !profile.socials.isEmpty()}"
+             style="margin-top:4px">
+            <th:block th:each="s, it : ${profile.socials}">
+                <span th:text="${s['url']}"></span>
+                <span class="sep" th:if="${!it.last}">•</span>
+            </th:block>
+        </div>
+
+        <div class="cl-personal"
+             th:if="${showPersonalInfo && (
+                 profile.religion != null ||
+                 profile.maritalStatus != null ||
+                 profile.birthDate != null ||
+                 profile.birthPlace != null ||
+                 profile.nationality != null ||
+                 profile.gender != null)}">
+            <th:block th:if="${profile.birthPlace != null || profile.birthDate != null}">
+        <span>
+          <th:block th:text="${profile.birthPlace}"></th:block>
+          <th:block th:if="${profile.birthPlace != null && profile.birthDate != null}">, </th:block>
+          <th:block th:if="${profile.birthDate != null}"
+                    th:text="${#temporals.format(profile.birthDate, 'dd MMM yyyy')}"></th:block>
+        </span>
+                <span class="sep">•</span>
+            </th:block>
+
+            <th:block th:if="${profile.religion != null}">
+                <span th:text="${profile.religion}"></span>
+                <span class="sep">•</span>
+            </th:block>
+
+            <th:block th:if="${profile.maritalStatus != null}">
+                <span th:text="${profile.maritalStatus}"></span>
+                <span class="sep">•</span>
+            </th:block>
+
+            <th:block th:if="${profile.nationality != null}">
+                <span th:text="${profile.nationality}"></span>
+                <span class="sep">•</span>
+            </th:block>
+
+            <th:block th:if="${profile.gender != null}">
+                <span th:text="${profile.gender}"></span>
+            </th:block>
+        </div>
+    </header>
+
+    <section class="cl-section" th:if="${showBio && profile.bio != null}">
+        <h2 class="cl-section-title">Ringkasan</h2>
+        <p class="cv-card-desc" th:text="${profile.bio}"></p>
+    </section>
+
+    <!-- WORK EXPERIENCE -->
+    <section class="cl-section" th:if="${showWorkExperience && !workExperiences.isEmpty()}">
+        <h2 class="cl-section-title">Pengalaman Kerja</h2>
+        <div class="cv-card" th:each="work : ${workExperiences}">
+            <div class="cv-card-header">
+                <div class="cv-card-title" th:text="${work.position}"></div>
+                <div class="cv-card-period"
+                     th:text="${work.startDate != null ? #temporals.format(work.startDate,'MMM yyyy') : ''}
+                     + ' – ' +
+                     ${work.currentlyHere ? 'Sekarang' : (work.endDate != null ? #temporals.format(work.endDate,'MMM yyyy') : '')}"></div>
+            </div>
+            <div class="cv-card-subtitle">
+                <span th:text="${work.company}"></span>
+                <span th:if="${work.location != null}" th:text="' · ' + ${work.location}"></span>
+                <span th:if="${work.employmentType != null}" th:text="' · ' + ${work.employmentType}"></span>
+            </div>
+            <p class="cv-card-desc" th:if="${work.description != null}"
+               th:text="${work.description}"></p>
+        </div>
+    </section>
+
+    <!-- EDUCATION -->
+    <section class="cl-section" th:if="${showEducation && !educations.isEmpty()}">
+        <h2 class="cl-section-title">Pendidikan</h2>
+        <div class="cv-card" th:each="edu : ${educations}">
+            <div class="cv-card-header">
+                <div class="cv-card-title" th:text="${edu.institution}"></div>
+                <div class="cv-card-period"
+                     th:text="${edu.startDate != null ? #temporals.format(edu.startDate,'yyyy') : ''}
+                     + ' – ' +
+                     ${edu.endDate != null ? #temporals.format(edu.endDate,'yyyy') : 'Sekarang'}"></div>
+            </div>
+            <div class="cv-card-subtitle"
+                 th:if="${edu.degree != null || edu.fieldOfStudy != null}"
+                 th:text="${(edu.degree != null ? edu.degree : '') +
+                   (edu.degree != null && edu.fieldOfStudy != null ? ' · ' : '') +
+                   (edu.fieldOfStudy != null ? edu.fieldOfStudy : '')}"></div>
+            <div class="cv-card-meta" th:if="${edu.gpa != null}">
+                <span th:text="'GPA: ' + ${edu.gpa}"></span>
+            </div>
+            <p class="cv-card-desc" th:if="${edu.description != null}"
+               th:text="${edu.description}"></p>
+        </div>
+    </section>
+
+    <!-- ⭐ EXPERIENCES (Achievement) — FIXED -->
+    <section class="cl-section" th:if="${showExperiences && !experiences.isEmpty()}">
+        <h2 class="cl-section-title">Pencapaian</h2>
+
+        <div class="cv-card" th:each="exp : ${experiences}">
+            <div class="cv-card-header">
+                <div class="cv-card-title" th:text="${exp.title}"></div>
+                <div class="cv-card-period"
+                     th:if="${exp.year != null}"
+                     th:text="${exp.year}"></div>
+            </div>
+
+            <div class="cv-card-subtitle"
+                 th:if="${exp.subtitle != null}"
+                 th:text="${exp.subtitle}"></div>
+
+            <p class="cv-card-desc" th:if="${exp.description != null}"
+               th:text="${exp.description}"></p>
+
+            <div style="margin-top:4px;font-size:9pt;color:var(--muted);font-style:italic"
+                 th:if="${exp.tags != null && !exp.tags.isEmpty()}">
+        <span th:each="tag, it : ${exp.tags}">
+          <span th:text="${tag}"></span><span th:if="${!it.last}">, </span>
+        </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="cl-section" th:if="${showProjects && !projects.isEmpty()}">
+        <h2 class="cl-section-title">Proyek</h2>
+        <div class="cv-card" th:each="proj : ${projects}">
+            <div class="cv-card-title" th:text="${proj.title}"></div>
+            <p class="cv-card-desc" th:if="${proj.description != null}"
+               th:text="${proj.description}"></p>
+            <div style="margin-top:4px;font-size:9pt;color:var(--muted);font-style:italic"
+                 th:if="${proj.techStack != null && !proj.techStack.isEmpty()}">
+        <span th:each="t, it : ${proj.techStack}">
+          <span th:text="${t}"></span><span th:if="${!it.last}">, </span>
+        </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="cl-section" th:if="${showSkills && !skillsByCategory.isEmpty()}">
+        <h2 class="cl-section-title">Keahlian</h2>
+        <div th:each="entry : ${skillsByCategory}">
+            <div class="cl-skill-cat" th:text="${entry.key}"></div>
+            <div class="cl-skills-grid">
+                <span th:each="s : ${entry.value}" th:text="${s.name}" style="font-size:10pt"></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="cl-section" th:if="${showTechStack && !techStacks.isEmpty()}">
+        <h2 class="cl-section-title">Tech Stack</h2>
+        <p style="font-size:10pt">
+      <span th:each="t, it : ${techStacks}">
+        <span th:text="${t.name}"></span><span th:if="${!it.last}">, </span>
+      </span>
+        </p>
+    </section>
+
+    <div class="cv-footer" th:text="'Dibuat ' + ${generatedAt}"></div>
+</div>
+
+</body>
+</html>

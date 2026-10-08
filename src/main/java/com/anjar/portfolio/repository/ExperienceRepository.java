@@ -9,6 +9,14 @@ import java.util.List;
 @Repository
 public interface ExperienceRepository extends JpaRepository<Experience, Long> {
 
-    // Sort by sort_order ASC, lalu created_at DESC
+    // ===== MULTI-TENANT (BARU) =====
+    List<Experience> findByUserIdOrderBySortOrderAscCreatedAtDesc(Long userId);
+
+    long countByUserId(Long userId);
+
+    // ===== PUBLIC (by user slug) (BARU) =====
+    List<Experience> findByUserPortfolioSlugOrderBySortOrderAscCreatedAtDesc(String portfolioSlug);
+
+    // ===== LAMA =====
     List<Experience> findAllByOrderBySortOrderAscCreatedAtDesc();
 }
