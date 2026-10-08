@@ -31,12 +31,12 @@ public class MeController {
     private final ExperienceService experienceService;
     private final TechStackService techStackService;
     private final MessageService messageService;
+    private final ThemeService themeService;   // ← TAMBAH (Fase 7.7)
 
     // ============================================================
     // ME (CURRENT USER INFO)
     // ============================================================
 
-    // GET /api/me
     @GetMapping
     public ResponseEntity<UserMeDTO> getMe() {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -47,39 +47,100 @@ public class MeController {
     // PROFILE
     // ============================================================
 
-    // GET /api/me/profile
     @GetMapping("/profile")
     public ResponseEntity<ProfileDTO> getProfile() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(profileService.getProfile(userId));
     }
 
-    // PUT /api/me/profile
+    /**
+     * FULL UPDATE — wajib kirim fullName (karena @Valid).
+     * Dipakai untuk save form lengkap di ManageProfile.
+     */
     @PutMapping("/profile")
     public ResponseEntity<ProfileDTO> updateProfile(@Valid @RequestBody ProfileDTO dto) {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(profileService.saveProfile(userId, dto));
     }
 
+    /**
+     * ⭐ PARTIAL UPDATE — kirim field spesifik aja tanpa wajib fullName.
+     * Dipakai untuk save Personal Info (religion, maritalStatus, dll).
+     *
+     * Tidak pakai @Valid → tidak butuh fullName.
+     */
+    @PatchMapping("/profile")
+    public ResponseEntity<ProfileDTO> patchProfile(@RequestBody ProfileDTO dto) {
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(profileService.saveProfile(userId, dto));
+    }
+
+    // ============================================================
+    // THEME (BARU — Fase 7.7)
+    // ============================================================
+
+    /**
+     * GET /api/me/theme
+     * Get theme user sendiri.
+     * Kalau belum ada → 204 No Content.
+     */
+    @GetMapping("/theme")
+    public ResponseEntity<ThemeDTO> getMyTheme() {
+        Long userId = SecurityUtil.requireCurrentUserId();
+        ThemeDTO theme = themeService.getTheme(userId);
+        if (theme == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(theme);
+    }
+
+    /**
+     * PUT /api/me/theme
+     * Save/update theme user sendiri (upsert).
+     */
+    @PutMapping("/theme")
+    public ResponseEntity<ThemeDTO> saveMyTheme(@Valid @RequestBody ThemeDTO dto) {
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(themeService.saveTheme(userId, dto));
+    }
+
+    /**
+     * POST /api/me/theme/apply/{preset}
+     * Apply preset theme.
+     */
+    @PostMapping("/theme/apply/{preset}")
+    public ResponseEntity<ThemeDTO> applyPreset(@PathVariable String preset) {
+        Long userId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(themeService.applyPreset(userId, preset));
+    }
+
+    /**
+     * DELETE /api/me/theme
+     * Reset theme (hapus theme, balik ke default).
+     */
+    @DeleteMapping("/theme")
+    public ResponseEntity<Void> resetMyTheme() {
+        Long userId = SecurityUtil.requireCurrentUserId();
+        themeService.resetTheme(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     // ============================================================
     // PROJECTS
     // ============================================================
 
-    // GET /api/me/projects
     @GetMapping("/projects")
     public ResponseEntity<List<ProjectDTO>> getMyProjects() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(projectService.getAllProjects(userId));
     }
 
-    // GET /api/me/projects/{id}
     @GetMapping("/projects/{id}")
     public ResponseEntity<ProjectDTO> getMyProject(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(projectService.getProjectById(id, userId));
     }
 
-    // POST /api/me/projects
     @PostMapping("/projects")
     public ResponseEntity<ProjectDTO> createProject(@Valid @RequestBody ProjectDTO dto) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -87,7 +148,6 @@ public class MeController {
                 .body(projectService.createProject(userId, dto));
     }
 
-    // PUT /api/me/projects/{id}
     @PutMapping("/projects/{id}")
     public ResponseEntity<ProjectDTO> updateProject(
             @PathVariable Long id,
@@ -96,7 +156,6 @@ public class MeController {
         return ResponseEntity.ok(projectService.updateProject(id, userId, dto));
     }
 
-    // DELETE /api/me/projects/{id}
     @DeleteMapping("/projects/{id}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -108,21 +167,18 @@ public class MeController {
     // BLOG
     // ============================================================
 
-    // GET /api/me/blog
     @GetMapping("/blog")
     public ResponseEntity<List<BlogPostDTO>> getMyBlog() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(blogService.getAllForOwner(userId));
     }
 
-    // GET /api/me/blog/{id}
     @GetMapping("/blog/{id}")
     public ResponseEntity<BlogPostDTO> getMyBlogPost(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(blogService.getByIdForOwner(id, userId));
     }
 
-    // POST /api/me/blog
     @PostMapping("/blog")
     public ResponseEntity<BlogPostDTO> createBlog(@Valid @RequestBody BlogPostRequest req) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -130,7 +186,6 @@ public class MeController {
                 .body(blogService.create(userId, req));
     }
 
-    // PUT /api/me/blog/{id}
     @PutMapping("/blog/{id}")
     public ResponseEntity<BlogPostDTO> updateBlog(
             @PathVariable Long id,
@@ -139,7 +194,6 @@ public class MeController {
         return ResponseEntity.ok(blogService.update(id, userId, req));
     }
 
-    // DELETE /api/me/blog/{id}
     @DeleteMapping("/blog/{id}")
     public ResponseEntity<Void> deleteBlog(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -151,21 +205,18 @@ public class MeController {
     // SKILLS
     // ============================================================
 
-    // GET /api/me/skills
     @GetMapping("/skills")
     public ResponseEntity<List<SkillDTO>> getMySkills() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(skillService.getAll(userId));
     }
 
-    // GET /api/me/skills/grouped
     @GetMapping("/skills/grouped")
     public ResponseEntity<Map<String, Map<String, Object>>> getMySkillsGrouped() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(skillService.getGrouped(userId));
     }
 
-    // POST /api/me/skills
     @PostMapping("/skills")
     public ResponseEntity<SkillDTO> createSkill(@Valid @RequestBody SkillDTO dto) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -173,7 +224,6 @@ public class MeController {
                 .body(skillService.create(userId, dto));
     }
 
-    // PUT /api/me/skills/{id}
     @PutMapping("/skills/{id}")
     public ResponseEntity<SkillDTO> updateSkill(
             @PathVariable Long id,
@@ -182,7 +232,6 @@ public class MeController {
         return ResponseEntity.ok(skillService.update(id, userId, dto));
     }
 
-    // DELETE /api/me/skills/{id}
     @DeleteMapping("/skills/{id}")
     public ResponseEntity<Void> deleteSkill(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -194,21 +243,18 @@ public class MeController {
     // EXPERIENCES
     // ============================================================
 
-    // GET /api/me/experiences
     @GetMapping("/experiences")
     public ResponseEntity<List<ExperienceDTO>> getMyExperiences() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(experienceService.getAll(userId));
     }
 
-    // GET /api/me/experiences/{id}
     @GetMapping("/experiences/{id}")
     public ResponseEntity<ExperienceDTO> getMyExperience(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(experienceService.getById(id, userId));
     }
 
-    // POST /api/me/experiences
     @PostMapping("/experiences")
     public ResponseEntity<ExperienceDTO> createExperience(@Valid @RequestBody ExperienceDTO dto) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -216,7 +262,6 @@ public class MeController {
                 .body(experienceService.create(userId, dto));
     }
 
-    // PUT /api/me/experiences/{id}
     @PutMapping("/experiences/{id}")
     public ResponseEntity<ExperienceDTO> updateExperience(
             @PathVariable Long id,
@@ -225,7 +270,6 @@ public class MeController {
         return ResponseEntity.ok(experienceService.update(id, userId, dto));
     }
 
-    // DELETE /api/me/experiences/{id}
     @DeleteMapping("/experiences/{id}")
     public ResponseEntity<Void> deleteExperience(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -237,21 +281,18 @@ public class MeController {
     // TECH STACK
     // ============================================================
 
-    // GET /api/me/tech-stack
     @GetMapping("/tech-stack")
     public ResponseEntity<List<TechStackDTO>> getMyTechStack() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(techStackService.getAll(userId));
     }
 
-    // GET /api/me/tech-stack/{id}
     @GetMapping("/tech-stack/{id}")
     public ResponseEntity<TechStackDTO> getMyTechStackItem(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(techStackService.getById(id, userId));
     }
 
-    // POST /api/me/tech-stack
     @PostMapping("/tech-stack")
     public ResponseEntity<TechStackDTO> createTechStack(@Valid @RequestBody TechStackDTO dto) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -259,7 +300,6 @@ public class MeController {
                 .body(techStackService.create(userId, dto));
     }
 
-    // PUT /api/me/tech-stack/{id}
     @PutMapping("/tech-stack/{id}")
     public ResponseEntity<TechStackDTO> updateTechStack(
             @PathVariable Long id,
@@ -268,7 +308,6 @@ public class MeController {
         return ResponseEntity.ok(techStackService.update(id, userId, dto));
     }
 
-    // DELETE /api/me/tech-stack/{id}
     @DeleteMapping("/tech-stack/{id}")
     public ResponseEntity<Void> deleteTechStack(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
@@ -280,35 +319,30 @@ public class MeController {
     // MESSAGES (INBOX)
     // ============================================================
 
-    // GET /api/me/messages
     @GetMapping("/messages")
     public ResponseEntity<List<MessageDTO>> getMyMessages() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(messageService.getAll(userId));
     }
 
-    // GET /api/me/messages/unread
     @GetMapping("/messages/unread")
     public ResponseEntity<List<MessageDTO>> getMyUnreadMessages() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(messageService.getUnread(userId));
     }
 
-    // GET /api/me/messages/count-unread
     @GetMapping("/messages/count-unread")
     public ResponseEntity<Map<String, Long>> countMyUnread() {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(Map.of("count", messageService.countUnread(userId)));
     }
 
-    // GET /api/me/messages/{id}
     @GetMapping("/messages/{id}")
     public ResponseEntity<MessageDTO> getMyMessage(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();
         return ResponseEntity.ok(messageService.getById(id, userId));
     }
 
-    // PATCH /api/me/messages/{id}/read
     @PatchMapping("/messages/{id}/read")
     public ResponseEntity<MessageDTO> markMyMessageAsRead(
             @PathVariable Long id,
@@ -317,7 +351,6 @@ public class MeController {
         return ResponseEntity.ok(messageService.markAsRead(id, userId, read));
     }
 
-    // DELETE /api/me/messages/{id}
     @DeleteMapping("/messages/{id}")
     public ResponseEntity<Void> deleteMyMessage(@PathVariable Long id) {
         Long userId = SecurityUtil.requireCurrentUserId();

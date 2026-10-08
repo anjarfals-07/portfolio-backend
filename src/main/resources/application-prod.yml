@@ -1,41 +1,21 @@
-# ============================================================
-# PROD PROFILE
-# ============================================================
-# ⚠️  JANGAN COMMIT credential di file ini!
-# Pakai environment variable untuk production:
-#
-#   export DB_URL=jdbc:postgresql://...
-#   export DB_USERNAME=...
-#   export DB_PASSWORD=...
-#   export CLOUDINARY_API_KEY=...
-#   export CLOUDINARY_API_SECRET=...
-#   export RESEND_API_KEY=...
-#
-# Atau pakai secret manager (Vercel, Railway, AWS Secrets Manager, dll).
-# ============================================================
-
 spring:
   datasource:
-    # ⚠️  WAJIB di-override via env var — jangan hardcode di sini
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-    # ===== HikariCP Pool Config (Production) =====
     hikari:
+      pool-name: PortfolioHikariPool
       maximum-pool-size: 10
       minimum-idle: 2
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-      pool-name: PortfolioHikariPool
-      connection-test-query: SELECT 1
+      leak-detection-threshold: 60000
 
   jpa:
     hibernate:
-      # ⚠️  Production: pakai `validate` atau `none` — JANGAN `update`
-      # Karena `update` bisa ubah schema otomatis (bahaya di prod).
       ddl-auto: validate
     show-sql: false
     open-in-view: false
@@ -43,98 +23,172 @@ spring:
       hibernate:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # Batch insert/update untuk performance
         jdbc:
           batch_size: 20
+          time_zone: UTC
         order_inserts: true
         order_updates: true
+        generate_statistics: false
 
   servlet:
     multipart:
       enabled: true
       max-file-size: 20MB
       max-request-size: 20MB
+      file-size-threshold: 2MB
 
-# ============================================================
-# SERVER
-# ============================================================
+  thymeleaf:
+    prefix: classpath:/template/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    time-zone: UTC
+
 server:
-  port: ${PORT:8080}
+  port: ${SERVER_PORT:8080}
   compression:
     enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
   error:
-    include-message: never
+    include-message: always
     include-stacktrace: never
-    include-binding-errors: never
-  # Forwarded headers (untuk reverse proxy / load balancer)
-  forward-headers-strategy: framework
+    include-binding-errors: always
+    include-exception: false
+  shutdown: graceful
 
-# ============================================================
-# APP
-# ============================================================
-app:
-  jwt:
-    # ⚠️  WAJIB di-override via env var — pakai secret yang kuat (min 32 karakter)
-    secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
-  cors:
-    # ⚠️  WAJIB di-override — pakai domain production
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
-  frontend-url: ${FRONTEND_URL}
-
-# ============================================================
-# CLOUDINARY
-# ============================================================
-cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:nayinpa6}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
-  folder: portfolio
-
-# ============================================================
-# RESEND (Email)
-# ============================================================
-resend:
-  api-key: ${RESEND_API_KEY}
-  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
-  from-name: ${RESEND_FROM_NAME:Portfolio}
-  to-email: ${RESEND_TO_EMAIL}
-  enabled: ${RESEND_ENABLED:true}
-
-# ============================================================
-# LOGGING (PROD)
-# ============================================================
 logging:
   level:
     root: WARN
     com.anjar.portfolio: INFO
     org.hibernate.SQL: WARN
-    org.springframework.security: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/portfolio.log
+    name: ${LOG_FILE:logs/portfolio-app.log}
     max-size: 10MB
-    max-history: 7
+    max-history: 30
+    total-size-cap: 1GB
 
-# ============================================================
-# ACTUATOR (Health Check)
-# ============================================================
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
 
-# ============================================================
-# SPRING DOCS (Opsional — Swagger)
-# ============================================================
-springdoc:
-  api-docs:
-    enabled: ${SPRINGDOC_ENABLED:false}
-  swagger-ui:
-    enabled: ${SPRINGDOC_ENABLED:false}
+info:
+  app:
+    name: Portfolio API
+    version: 1.0.0
+
+app:
+  # ============================================================
+  # JWT
+  # ============================================================
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000
+
+  # ============================================================
+  # CORS
+  # ============================================================
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+  # ============================================================
+  # FRONTEND / APP URL
+  # ============================================================
+  frontend-url: ${FRONTEND_URL}
+  base-url: ${APP_BASE_URL}
+
+  # ============================================================
+  # UPLOAD
+  # ============================================================
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+    max-file-size-mb: 20
+    allowed-types:
+      - application/pdf
+      - image/jpeg
+      - image/png
+      - image/webp
+
+  # ============================================================
+  # MAIL
+  # ============================================================
+  mail:
+    from-email: ${MAIL_FROM_EMAIL}
+    from-name: ${MAIL_FROM_NAME:Portfolio}
+    admin-email: ${MAIL_ADMIN_EMAIL}
+    enabled: true
+
+  # ============================================================
+  # RATE LIMIT
+  # ============================================================
+  rate-limit:
+    enabled: true
+    login-attempts-per-minute: 5
+    api-requests-per-minute: 100
+
+  # ============================================================
+  # BACKUP DATABASE — MODE LOCAL (Production)
+  # ============================================================
+  backup:
+    enabled: ${BACKUP_ENABLED:true}
+    mode: LOCAL
+    temp-dir: ${BACKUP_TEMP_DIR:/tmp/backups}
+    pg-dump-path: ${PG_DUMP_PATH:pg_dump}
+    compress: true
+    timeout-seconds: ${BACKUP_TIMEOUT:600}
+    filename-prefix: backup
+    cleanup-after-stream: true
+    cleanup-delay-minutes: ${BACKUP_CLEANUP_DELAY:60}
+
+  # ============================================================
+  # ⭐ CUSTOM DOMAIN — PRODUCTION
+  # (SEJAJAR DENGAN BACKUP — bukan nested!)
+  # ============================================================
+  custom-domain:
+    # ⚠️ GANTI dengan domain Anda
+    cname-target: ${CUSTOM_DOMAIN_CNAME:app.yourdomain.com}
+
+    # ⚠️ GANTI dengan IP server Anda
+    server-ip: ${CUSTOM_DOMAIN_SERVER_IP:}
+
+    # Enable verifikasi DNS
+    enabled: true
+
+    # Auto-verify = false (wajib verifikasi manual)
+    auto-verify: false
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+  folder: portfolio
+  secure: true

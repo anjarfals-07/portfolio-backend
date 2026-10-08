@@ -2,6 +2,7 @@ package com.anjar.portfolio.controller;
 
 import com.anjar.portfolio.dto.*;
 import com.anjar.portfolio.service.*;
+import com.anjar.portfolio.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class AdminController {
     private final UserService userService;
     private final ProjectService projectService;
     private final BlogService blogService;
-    private final ProfileService profileService;  // ← tambah
+    private final ProfileService profileService;
 
     // ============================================================
     // USERS
@@ -46,7 +47,8 @@ public class AdminController {
 
     // POST /api/admin/users
     @PostMapping("/users")
-    public ResponseEntity<UserAdminDTO> createUser(@Valid @RequestBody CreateUserRequest req) {
+    public ResponseEntity<UserAdminDTO> createUser(
+            @Valid @RequestBody CreateUserRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userService.createByAdmin(req));
     }
@@ -80,6 +82,55 @@ public class AdminController {
             @PathVariable Long id,
             @RequestParam String role) {
         return ResponseEntity.ok(userService.changeRole(id, role));
+    }
+
+    // ============================================================
+    // APPROVAL (BARU — Fase 6)
+    // ============================================================
+
+    /**
+     * Approve user — ubah status jadi ACTIVE.
+     *
+     * Setelah approve, user bisa login & akses dashboard.
+     *
+     * PATCH /api/admin/users/{id}/approve
+     */
+    @PatchMapping("/users/{id}/approve")
+    public ResponseEntity<UserAdminDTO> approveUser(@PathVariable Long id) {
+        Long adminId = SecurityUtil.requireCurrentUserId();
+        return ResponseEntity.ok(userService.approveUser(id, adminId));
+    }
+
+    /**
+     * Reject user — ubah status jadi REJECTED dengan alasan.
+     *
+     * PATCH /api/admin/users/{id}/reject?reason=xxx
+     */
+    @PatchMapping("/users/{id}/reject")
+    public ResponseEntity<UserAdminDTO> rejectUser(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        Long adminId = SecurityUtil.requireCurrentUserId();
+        String finalReason = (reason != null && !reason.isBlank())
+                ? reason
+                : "Tidak memenuhi syarat";
+        return ResponseEntity.ok(userService.rejectUser(id, adminId, finalReason));
+    }
+
+    /**
+     * Suspend user — ubah status jadi SUSPENDED dengan alasan.
+     *
+     * PATCH /api/admin/users/{id}/suspend?reason=xxx
+     */
+    @PatchMapping("/users/{id}/suspend")
+    public ResponseEntity<UserAdminDTO> suspendUser(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        Long adminId = SecurityUtil.requireCurrentUserId();
+        String finalReason = (reason != null && !reason.isBlank())
+                ? reason
+                : "Melanggar aturan";
+        return ResponseEntity.ok(userService.suspendUser(id, adminId, finalReason));
     }
 
     // ============================================================

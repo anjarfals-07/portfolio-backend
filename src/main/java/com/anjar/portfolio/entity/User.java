@@ -1,5 +1,8 @@
 package com.anjar.portfolio.entity;
 
+import com.anjar.portfolio.enums.UserPaymentStatus;
+import com.anjar.portfolio.enums.UserRole;
+import com.anjar.portfolio.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,14 +13,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * User entity — dipakai untuk auth & multi-tenant.
- *
- * Setiap user punya:
- * - username: untuk login
- * - portfolioSlug: URL unik untuk portfolio mereka (/anjar, /budi, dll)
- * - role: OWNER atau SUPER_ADMIN
- */
 @Entity
 @Table(
         name = "users",
@@ -36,65 +31,101 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ===== AUTH =====
+    // ============================================================
+    // AUTH
+    // ============================================================
 
-    /**
-     * Username untuk login (unique, lowercase)
-     */
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
-    /**
-     * Password (BCrypt hashed)
-     */
     @Column(nullable = false)
     private String password;
 
-    // ===== MULTI-TENANT =====
+    // ============================================================
+    // MULTI-TENANT
+    // ============================================================
 
-    /**
-     * Slug URL portfolio user: anjar.dev/portfolio → slug "portfolio"
-     *
-     * Atau kalau pakai subdomain: portfolio.anjar.dev → slug "anjar"
-     *
-     * Wajib unique. Gak boleh sama dengan ReservedSlugs.
-     */
     @Column(name = "portfolio_slug", nullable = false, unique = true, length = 50)
     private String portfolioSlug;
 
-    /**
-     * Role user: OWNER (user biasa) atau SUPER_ADMIN (kamu)
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private UserRole role = UserRole.OWNER;
 
-    // ===== PROFILE INFO =====
+    // ============================================================
+    // STATUS (Fase 6 — Approval)
+    // ============================================================
 
-    /**
-     * Email untuk kontak & notifikasi
-     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserStatus status = UserStatus.PENDING;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by")
+    private Long approvedBy;
+
+    // ============================================================
+    // RESET PASSWORD (Fase 9.17)
+    // ============================================================
+
+    @Column(name = "reset_token", length = 100)
+    private String resetToken;
+
+    @Column(name = "reset_token_expires")
+    private LocalDateTime resetTokenExpires;
+
+    // ============================================================
+    // PROFILE INFO
+    // ============================================================
+
     @Column(nullable = false, length = 200)
     private String email;
 
-    /**
-     * Nama tampilan (buat header "Hi, Anjar")
-     */
     @Column(name = "display_name", length = 100)
     private String displayName;
 
-    // ===== STATUS =====
+    // ============================================================
+    // FLAG AKTIF
+    // ============================================================
 
-    /**
-     * Status aktif. Kalau false, user gak bisa login.
-     * Super admin bisa disable user (misal spam).
-     */
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;
 
-    // ===== TIMESTAMPS =====
+    // ============================================================
+    // PAYMENT (BARU)
+    // ============================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 30)
+    @Builder.Default
+    private UserPaymentStatus paymentStatus = UserPaymentStatus.UNPAID;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    // ============================================================
+    // THEME (Fase 7.2)
+    // ============================================================
+
+    @OneToOne(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    private Theme theme;
+
+    // ============================================================
+    // TIMESTAMPS
+    // ============================================================
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -104,19 +135,68 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // ===== HELPER METHODS =====
+    // ============================================================
+    // HELPER — ROLE & STATUS
+    // ============================================================
 
-    /**
-     * Cek apakah user super admin.
-     */
     public boolean isSuperAdmin() {
         return this.role == UserRole.SUPER_ADMIN;
     }
 
-    /**
-     * Cek apakah user owner.
-     */
     public boolean isOwner() {
         return this.role == UserRole.OWNER;
+    }
+
+    public boolean isPending() {
+        return this.status == UserStatus.PENDING;
+    }
+
+    public boolean hasActiveStatus() {
+        return this.status == UserStatus.ACTIVE;
+    }
+
+    public boolean isRejected() {
+        return this.status == UserStatus.REJECTED;
+    }
+
+    public boolean isSuspended() {
+        return this.status == UserStatus.SUSPENDED;
+    }
+
+    public boolean canLogin() {
+        return Boolean.TRUE.equals(this.active)
+                && this.status == UserStatus.ACTIVE;
+    }
+
+    public boolean isResetTokenValid() {
+        return resetToken != null
+                && resetTokenExpires != null
+                && resetTokenExpires.isAfter(LocalDateTime.now());
+    }
+
+    public boolean hasTheme() {
+        return this.theme != null;
+    }
+
+    // ============================================================
+    // HELPER — PAYMENT
+    // ============================================================
+
+    public boolean hasPaid() {
+        return this.paymentStatus == UserPaymentStatus.PAID;
+    }
+
+    public boolean isWaitingPayment() {
+        return this.paymentStatus == UserPaymentStatus.UNPAID
+                || this.paymentStatus == UserPaymentStatus.WAITING_VERIFICATION
+                || this.paymentStatus == UserPaymentStatus.REJECTED;
+    }
+
+    public boolean isPaymentRejected() {
+        return this.paymentStatus == UserPaymentStatus.REJECTED;
+    }
+
+    public boolean isPaymentExpired() {
+        return this.paymentStatus == UserPaymentStatus.EXPIRED;
     }
 }

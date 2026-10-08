@@ -31,12 +31,16 @@ public class UserPublicController {
     private final ExperienceService experienceService;
     private final TechStackService techStackService;
     private final MessageService messageService;
+    private final ThemeService themeService;
+
+    // ⭐ BARU — inject 2 service ini
+    private final WorkExperienceService workExperienceService;
+    private final EducationService educationService;
 
     // ============================================================
     // LIST ALL USERS (LANDING PAGE)
     // ============================================================
 
-    // GET /api/users
     @GetMapping
     public ResponseEntity<List<UserPublicDTO>> listAllUsers() {
         return ResponseEntity.ok(userService.getAllPublicUsers());
@@ -46,23 +50,33 @@ public class UserPublicController {
     // PROFILE
     // ============================================================
 
-    // GET /api/users/{username}
     @GetMapping("/{username}")
     public ResponseEntity<ProfileDTO> getProfile(@PathVariable String username) {
         return ResponseEntity.ok(profileService.getPublicProfile(username));
     }
 
     // ============================================================
+    // THEME
+    // ============================================================
+
+    @GetMapping("/{username}/theme")
+    public ResponseEntity<ThemeDTO> getPublicTheme(@PathVariable String username) {
+        ThemeDTO theme = themeService.getPublicTheme(username);
+        if (theme == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(theme);
+    }
+
+    // ============================================================
     // PROJECTS
     // ============================================================
 
-    // GET /api/users/{username}/projects
     @GetMapping("/{username}/projects")
     public ResponseEntity<List<ProjectDTO>> getProjects(@PathVariable String username) {
         return ResponseEntity.ok(projectService.getPublicProjects(username));
     }
 
-    // GET /api/users/{username}/projects/{slug}
     @GetMapping("/{username}/projects/{slug}")
     public ResponseEntity<ProjectDTO> getProjectDetail(
             @PathVariable String username,
@@ -74,19 +88,16 @@ public class UserPublicController {
     // BLOG
     // ============================================================
 
-    // GET /api/users/{username}/blog
     @GetMapping("/{username}/blog")
     public ResponseEntity<List<BlogPostDTO>> getBlogList(@PathVariable String username) {
         return ResponseEntity.ok(blogService.getPublishedByUser(username));
     }
 
-    // GET /api/users/{username}/blog/featured
     @GetMapping("/{username}/blog/featured")
     public ResponseEntity<List<BlogPostDTO>> getFeaturedBlog(@PathVariable String username) {
         return ResponseEntity.ok(blogService.getFeaturedByUser(username));
     }
 
-    // GET /api/users/{username}/blog/{slug}
     @GetMapping("/{username}/blog/{slug}")
     public ResponseEntity<BlogPostDTO> getBlogDetail(
             @PathVariable String username,
@@ -98,27 +109,44 @@ public class UserPublicController {
     // SKILLS
     // ============================================================
 
-    // GET /api/users/{username}/skills
     @GetMapping("/{username}/skills")
     public ResponseEntity<Map<String, Map<String, Object>>> getSkills(@PathVariable String username) {
         return ResponseEntity.ok(skillService.getPublicGrouped(username));
     }
 
     // ============================================================
-    // EXPERIENCES
+    // EXPERIENCES (achievement/timeline)
     // ============================================================
 
-    // GET /api/users/{username}/experiences
     @GetMapping("/{username}/experiences")
     public ResponseEntity<List<ExperienceDTO>> getExperiences(@PathVariable String username) {
         return ResponseEntity.ok(experienceService.getPublicList(username));
     }
 
     // ============================================================
+    // ⭐ WORK EXPERIENCES (riwayat pekerjaan) — BARU
+    // ============================================================
+
+    @GetMapping("/{username}/work-experiences")
+    public ResponseEntity<List<WorkExperienceDTO>> getWorkExperiences(
+            @PathVariable String username) {
+        return ResponseEntity.ok(workExperienceService.listPublic(username));
+    }
+
+    // ============================================================
+    // ⭐ EDUCATIONS (riwayat pendidikan) — BARU
+    // ============================================================
+
+    @GetMapping("/{username}/educations")
+    public ResponseEntity<List<EducationDTO>> getEducations(
+            @PathVariable String username) {
+        return ResponseEntity.ok(educationService.listPublic(username));
+    }
+
+    // ============================================================
     // TECH STACK
     // ============================================================
 
-    // GET /api/users/{username}/tech-stack
     @GetMapping("/{username}/tech-stack")
     public ResponseEntity<List<TechStackDTO>> getTechStack(@PathVariable String username) {
         return ResponseEntity.ok(techStackService.getPublicList(username));
@@ -128,7 +156,6 @@ public class UserPublicController {
     // CONTACT FORM (PUBLIC)
     // ============================================================
 
-    // POST /api/users/{username}/messages
     @PostMapping("/{username}/messages")
     public ResponseEntity<MessageDTO> submitMessage(
             @PathVariable String username,

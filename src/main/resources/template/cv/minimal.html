@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id"
+      th:attr="data-theme=${theme}, data-card='none',
+               data-badge='minimal', data-pattern='none'">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'CV - ' + ${profile.fullName}">CV</title>
+    <th:block th:replace="~{cv/fragments/_design-system :: designSystem}"/>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --text: #4b5563;
+            --text-heading: #111827;
+            --muted: #9ca3af;
+            --divider: #e5e7eb;
+            --card-bg: transparent;
+            --card-border: none;
+            --card-shadow: none;
+            --card-radius: 0;
+            --card-padding: 0 0 var(--sp-sm) 0;
+            --icon-size: 12px;
+            --icon-color: var(--muted);
+            --badge-bg: transparent;
+            --badge-text: var(--accent);
+            --badge-padding: 0;
+            --badge-radius: 0;
+        }
+        .cv-page { padding: 60px 68px; }
+
+        .mn-header { margin-bottom: var(--sp-xl); }
+        .mn-name {
+            font-size: 22pt; font-weight: 300;
+            letter-spacing: -0.5px; line-height: 1.1;
+            margin-bottom: 6px; color: var(--text-heading);
+        }
+        .mn-name strong { font-weight: 700; }
+        .mn-role {
+            font-size: 10pt; color: var(--accent);
+            font-weight: 500; letter-spacing: 0.5px;
+            text-transform: uppercase; margin-bottom: var(--sp-md);
+        }
+        .mn-contact {
+            font-size: 8.5pt; color: var(--muted);
+            line-height: 1.7;
+        }
+        .mn-contact .sep { margin: 0 6px; color: var(--divider); }
+
+        .mn-section { margin-bottom: var(--sp-xl); }
+        .mn-section-title {
+            font-size: 8pt; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 2.5px;
+            color: var(--muted); margin-bottom: var(--sp-md);
+            padding-bottom: 0; border-bottom: none;
+        }
+
+        .mn-entry { margin-bottom: var(--sp-md); }
+        .mn-entry-header {
+            display: flex; justify-content: space-between;
+            align-items: baseline; gap: var(--sp-sm); margin-bottom: 2px;
+        }
+        .mn-entry-title {
+            font-size: 10.5pt; font-weight: 600;
+            color: var(--text-heading);
+        }
+        .mn-entry-sub {
+            font-size: 9.5pt; color: var(--accent); font-weight: 400;
+        }
+        .mn-entry-period {
+            font-size: 8pt; color: var(--muted); white-space: nowrap;
+        }
+        .mn-entry-desc {
+            font-size: 9.5pt; color: var(--text);
+            line-height: 1.65; margin-top: 4px;
+        }
+
+        .mn-skills { font-size: 9.5pt; line-height: 1.9; color: var(--text); }
+        .mn-skill-cat {
+            font-size: 8pt; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--muted); margin-top: var(--sp-sm);
+            margin-bottom: 3px;
+        }
+        .mn-skill-cat:first-child { margin-top: 0; }
+
+        .mn-tags { font-size: 8.5pt; color: var(--muted); margin-top: 4px; }
+        .mn-bio { font-size: 10pt; line-height: 1.7; color: var(--text); }
+    </style>
+</head>
+<body>
+
+<div class="cv-page">
+
+    <header class="mn-header">
+        <h1 class="mn-name" th:utext="'<strong>' + ${profile.fullName} + '</strong>'"></h1>
+        <p class="mn-role" th:text="${profile.role}"></p>
+
+        <div class="mn-contact">
+            <span th:if="${profile.email != null}" th:text="${profile.email}"></span>
+            <span class="sep" th:if="${profile.email != null && profile.phone != null}">/</span>
+            <span th:if="${profile.phone != null}" th:text="${profile.phone}"></span>
+            <span class="sep" th:if="${profile.phone != null && profile.city != null}">/</span>
+            <span th:if="${profile.city != null}" th:text="${profile.city}"></span>
+        </div>
+
+        <div class="mn-contact"
+             th:if="${profile.socials != null && !profile.socials.isEmpty()}"
+             style="margin-top:3px">
+            <th:block th:each="s, it : ${profile.socials}">
+                <span th:text="${s['url']}"></span>
+                <span class="sep" th:if="${!it.last}">/</span>
+            </th:block>
+        </div>
+
+        <div class="mn-contact"
+             th:if="${showPersonalInfo && (
+                 profile.religion != null ||
+                 profile.maritalStatus != null ||
+                 profile.birthDate != null ||
+                 profile.birthPlace != null ||
+                 profile.nationality != null ||
+                 profile.gender != null)}"
+             style="margin-top:3px">
+            <th:block th:if="${profile.birthPlace != null || profile.birthDate != null}">
+        <span>
+          <th:block th:text="${profile.birthPlace}"></th:block>
+          <th:block th:if="${profile.birthPlace != null && profile.birthDate != null}">, </th:block>
+          <th:block th:if="${profile.birthDate != null}"
+                    th:text="${#temporals.format(profile.birthDate, 'dd MMM yyyy')}"></th:block>
+        </span>
+                <span class="sep">/</span>
+            </th:block>
+
+            <th:block th:if="${profile.religion != null}">
+                <span th:text="${profile.religion}"></span>
+                <span class="sep">/</span>
+            </th:block>
+
+            <th:block th:if="${profile.maritalStatus != null}">
+                <span th:text="${profile.maritalStatus}"></span>
+                <span class="sep">/</span>
+            </th:block>
+
+            <th:block th:if="${profile.nationality != null}">
+                <span th:text="${profile.nationality}"></span>
+                <span class="sep">/</span>
+            </th:block>
+
+            <th:block th:if="${profile.gender != null}">
+                <span th:text="${profile.gender}"></span>
+            </th:block>
+        </div>
+    </header>
+
+    <section class="mn-section" th:if="${showBio && profile.bio != null}">
+        <h2 class="mn-section-title">Tentang</h2>
+        <p class="mn-bio" th:text="${profile.bio}"></p>
+    </section>
+
+    <!-- WORK EXPERIENCE -->
+    <section class="mn-section" th:if="${showWorkExperience && !workExperiences.isEmpty()}">
+        <h2 class="mn-section-title">Pengalaman</h2>
+        <div class="mn-entry" th:each="work : ${workExperiences}">
+            <div class="mn-entry-header">
+                <div>
+                    <div class="mn-entry-title" th:text="${work.position}"></div>
+                    <div class="mn-entry-sub">
+                        <span th:text="${work.company}"></span>
+                        <span th:if="${work.location != null}" th:text="' · ' + ${work.location}"></span>
+                    </div>
+                </div>
+                <div class="mn-entry-period"
+                     th:text="${work.startDate != null ? #temporals.format(work.startDate,'MMM yyyy') : ''}
+                     + ' — ' +
+                     ${work.currentlyHere ? 'Sekarang' : (work.endDate != null ? #temporals.format(work.endDate,'MMM yyyy') : '')}"></div>
+            </div>
+            <p class="mn-entry-desc" th:if="${work.description != null}"
+               th:text="${work.description}"></p>
+        </div>
+    </section>
+
+    <!-- EDUCATION -->
+    <section class="mn-section" th:if="${showEducation && !educations.isEmpty()}">
+        <h2 class="mn-section-title">Pendidikan</h2>
+        <div class="mn-entry" th:each="edu : ${educations}">
+            <div class="mn-entry-header">
+                <div>
+                    <div class="mn-entry-title" th:text="${edu.institution}"></div>
+                    <div class="mn-entry-sub"
+                         th:if="${edu.degree != null || edu.fieldOfStudy != null}"
+                         th:text="${(edu.degree != null ? edu.degree : '') +
+                       (edu.degree != null && edu.fieldOfStudy != null ? ' · ' : '') +
+                       (edu.fieldOfStudy != null ? edu.fieldOfStudy : '')}"></div>
+                </div>
+                <div class="mn-entry-period"
+                     th:text="${edu.startDate != null ? #temporals.format(edu.startDate,'yyyy') : ''}
+                     + ' — ' +
+                     ${edu.endDate != null ? #temporals.format(edu.endDate,'yyyy') : 'Sekarang'}"></div>
+            </div>
+            <div class="mn-tags" th:if="${edu.gpa != null}">
+                <span th:text="'GPA ' + ${edu.gpa}"></span>
+            </div>
+            <p class="mn-entry-desc" th:if="${edu.description != null}"
+               th:text="${edu.description}"></p>
+        </div>
+    </section>
+
+    <!-- ⭐ EXPERIENCES (Achievement) — FIXED -->
+    <section class="mn-section" th:if="${showExperiences && !experiences.isEmpty()}">
+        <h2 class="mn-section-title">Pencapaian</h2>
+
+        <div class="mn-entry" th:each="exp : ${experiences}">
+            <div class="mn-entry-header">
+                <div>
+                    <div class="mn-entry-title" th:text="${exp.title}"></div>
+                    <div class="mn-entry-sub"
+                         th:if="${exp.subtitle != null}"
+                         th:text="${exp.subtitle}"></div>
+                </div>
+                <div class="mn-entry-period"
+                     th:if="${exp.year != null}"
+                     th:text="${exp.year}"></div>
+            </div>
+
+            <p class="mn-entry-desc" th:if="${exp.description != null}"
+               th:text="${exp.description}"></p>
+
+            <div class="mn-tags" th:if="${exp.tags != null && !exp.tags.isEmpty()}">
+        <span th:each="t, it : ${exp.tags}">
+          <span th:text="${t}"></span><span th:if="${!it.last}"> · </span>
+        </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="mn-section" th:if="${showProjects && !projects.isEmpty()}">
+        <h2 class="mn-section-title">Proyek</h2>
+        <div class="mn-entry" th:each="proj : ${projects}">
+            <div class="mn-entry-title" th:text="${proj.title}"></div>
+            <p class="mn-entry-desc" th:if="${proj.description != null}"
+               th:text="${proj.description}"></p>
+            <div class="mn-tags" th:if="${proj.techStack != null && !proj.techStack.isEmpty()}">
+        <span th:each="t, it : ${proj.techStack}">
+          <span th:text="${t}"></span><span th:if="${!it.last}"> · </span>
+        </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="mn-section" th:if="${showSkills && !skillsByCategory.isEmpty()}">
+        <h2 class="mn-section-title">Keahlian</h2>
+        <div class="mn-skills">
+            <div th:each="entry : ${skillsByCategory}">
+                <div class="mn-skill-cat" th:text="${entry.key}"></div>
+                <span th:each="s, it : ${entry.value}">
+          <span th:text="${s.name}"></span><span th:if="${!it.last}"> · </span>
+        </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECH STACK -->
+    <section class="mn-section" th:if="${showTechStack && !techStacks.isEmpty()}">
+        <h2 class="mn-section-title">Tech Stack</h2>
+        <p class="mn-skills">
+      <span th:each="t, it : ${techStacks}">
+        <span th:text="${t.name}"></span><span th:if="${!it.last}"> · </span>
+      </span>
+        </p>
+    </section>
+
+    <div class="cv-footer" th:text="'Dibuat ' + ${generatedAt}"></div>
+</div>
+
+</body>
+</html>

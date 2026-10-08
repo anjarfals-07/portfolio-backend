@@ -12,6 +12,10 @@ import java.util.List;
 /**
  * Custom UserDetails untuk Spring Security.
  * Wrap User entity + include userId + role.
+ *
+ * Dipakai di:
+ * 1. Form login — AuthenticationManager → DaoAuthenticationProvider
+ * 2. JWT filter — set principal sebagai UserDetailsImpl
  */
 @Getter
 public class UserDetailsImpl implements UserDetails {
@@ -22,6 +26,7 @@ public class UserDetailsImpl implements UserDetails {
     private final String role;
     private final boolean active;
 
+    // ===== Constructor dari User entity (untuk login) =====
     public UserDetailsImpl(User user) {
         this.id = user.getId();
         this.username = user.getUsername();
@@ -30,9 +35,17 @@ public class UserDetailsImpl implements UserDetails {
         this.active = Boolean.TRUE.equals(user.getActive());
     }
 
+    // ===== Constructor minimal (untuk JWT) =====
+    public UserDetailsImpl(Long id, String username, String role) {
+        this.id = id;
+        this.username = username;
+        this.password = null;
+        this.role = role;
+        this.active = true;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Spring Security: authority harus prefix "ROLE_"
         return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 

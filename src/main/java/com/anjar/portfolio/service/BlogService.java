@@ -177,14 +177,13 @@ public class BlogService {
         return slug;
     }
 
-    // ===== HELPER: Estimate reading time (200 kata/menit) =====
     private Integer estimateReadingTime(String content) {
         if (content == null || content.isBlank()) return 1;
         int words = content.trim().split("\\s+").length;
         return Math.max(1, words / 200);
     }
 
-    // ===== Mapper =====
+
     private BlogPostDTO toDTO(BlogPost p) {
         return BlogPostDTO.builder()
                 .id(p.getId())

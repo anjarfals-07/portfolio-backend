@@ -1,0 +1,106 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+    open-in-view: false
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  thymeleaf:
+    prefix: classpath:/template/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+  frontend-url: ${FRONTEND_URL}
+  base-url: ${APP_BASE_URL}
+
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+    base-url: ${APP_BASE_URL}
+    cv:
+      max-size-mb: 10
+      allowed-types:
+        - application/pdf
+
+  mail:
+    from-email: ${MAIL_FROM_EMAIL}
+    from-name: ${MAIL_FROM_NAME}
+    admin-email: ${MAIL_ADMIN_EMAIL}
+    enabled: true
+
+  backup:
+    enabled: ${BACKUP_ENABLED:true}
+    mode: DOCKER
+    docker-container: portfolio-pg-client
+    docker-backup-dir: /backups
+    temp-dir: ${BACKUP_TEMP_DIR:backups}
+    pg-dump-path: pg_dump
+    compress: true
+    timeout-seconds: ${BACKUP_TIMEOUT:300}
+    filename-prefix: backup
+    cleanup-after-stream: true
+    cleanup-delay-minutes: ${BACKUP_CLEANUP_DELAY:60}
+
+  # ============================================================
+  # ⭐ CUSTOM DOMAIN — DEV (SEJAJAR DENGAN BACKUP)
+  # ============================================================
+  custom-domain:
+    cname-target: ${CUSTOM_DOMAIN_CNAME:localhost}
+    server-ip: ${CUSTOM_DOMAIN_SERVER_IP:}
+    enabled: true
+    auto-verify: false
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+  folder: portfolio

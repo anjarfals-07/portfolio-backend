@@ -10,7 +10,7 @@ import lombok.Data;
 public class RegisterRequest {
 
     @NotBlank(message = "Username wajib diisi")
-    @Size(min = 3, max = 50, message = "Username 3-50 karakter")
+    @Size(min = 3, max = 50)
     @Pattern(
             regexp = "^[a-z0-9_-]+$",
             message = "Username cuma boleh lowercase, angka, dash, underscore"
@@ -23,17 +23,23 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Password wajib diisi")
-    @Size(min = 8, max = 100, message = "Password minimal 8 karakter")
+    @Size(min = 8, message = "Password minimal 8 karakter")
     private String password;
 
     @Size(max = 100)
     private String displayName;
 
-    // Optional: custom slug (kalau kosong, auto-generate)
     @Size(min = 3, max = 50)
     @Pattern(
             regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             message = "Slug cuma boleh lowercase, angka, dan dash"
     )
     private String portfolioSlug;
+
+    // ===== Payment =====
+    /**
+     * ID payment method yang dipilih user.
+     * Wajib kalau registrationPaymentEnabled = true.
+     */
+    private Long paymentMethodId;
 }

@@ -1,4 +1,4 @@
-package com.anjar.portfolio.entity;
+package com.anjar.portfolio.enums;
 
 /**
  * Role user dalam sistem multi-tenant.

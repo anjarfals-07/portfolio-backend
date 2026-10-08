@@ -17,7 +17,6 @@ public class UploadController {
 
     private final UploadService uploadService;
 
-    // POST /api/me/upload
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadResult> uploadImage(
             @RequestParam("file") MultipartFile file) {
@@ -26,7 +25,6 @@ public class UploadController {
         return ResponseEntity.ok(result);
     }
 
-    // DELETE /api/me/upload?publicId=xxx
     @DeleteMapping
     public ResponseEntity<Void> deleteImage(@RequestParam String publicId) {
         Long userId = SecurityUtil.requireCurrentUserId();

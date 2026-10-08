@@ -66,28 +66,29 @@ desktop.ini
 # ============================================================
 # ENV & SECRETS
 # ============================================================
+# ⭐ Ignore semua .env KECUALI .env.example
 .env
 .env.local
 .env.*.local
-*.env
+.env.production
+.env.staging
+!.env.example
 
 # ============================================================
-# SPRING BOOT — CREDENTIAL (JANGAN COMMIT!)
+# SPRING BOOT — CONFIG
 # ============================================================
-# Ignore semua file application-*.yml KECUALI:
-#   - application.yml (config umum)
-#   - application-dev-example.yml (template)
-#   - application-test.yml (dummy test)
-application-*.yml
-!application.yml
-!application-dev-example.yml
-!application-test.yml
-
-# Khusus file dengan credential
+# ⭐ Kalau pakai .env → yml boleh commit (pakai ${VAR})
+# ⭐ Kalau tidak pakai .env → yml yang berisi secret di-ignore
 application-local.yml
 application-secret.yml
-application-dev.yml
-application-prod.yml
+
+# ⭐ YANG INI JANGAN DI-IGNORE (biar team bisa lihat config)
+!application.yml
+!application-dev.yml
+!application-prod.yml
+!application-dev-example.yml
+!application-prod-example.yml
+!application-test.yml
 
 # ============================================================
 # LOGS
@@ -108,16 +109,23 @@ out/
 .parcel-cache/
 *.tsbuildinfo
 
-# Package manager lock (opsional — biasanya di-commit)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
-
 # ============================================================
 # UPLOADS (kalau ada upload lokal)
 # ============================================================
 uploads/
 uploads-test/
+
+# ============================================================
+# BACKUP DATABASE
+# ============================================================
+backups/*
+!backups/.gitkeep
+
+# ============================================================
+# DOCKER
+# ============================================================
+docker-compose.override.yml
+.docker/
 
 # ============================================================
 # TEMP

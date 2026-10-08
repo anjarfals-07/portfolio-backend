@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="designSystem">
+    <meta charset="UTF-8"/>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+    <link rel="stylesheet" th:href="${googleFontsUrl}"/>
+
+    <!-- ============================================================
+         ICON SETS
+         ============================================================ -->
+    <link th:if="${iconSet == 'primeicons'}" rel="stylesheet"
+          href="https://unpkg.com/primeicons@7.0.0/primeicons.css"/>
+    <link th:if="${iconSet == 'lucide'}" rel="stylesheet"
+          href="https://unpkg.com/lucide-static@0.400.0/font/lucide.css"/>
+
+    <style>
+
+        :root {
+            --accent: [[${accentColor}]];
+            --accent-dark: [[${accentColorDark}]];
+            --accent-light: [[${accentColorLight}]];
+            --font-heading: '[[${fontHeading}]]', -apple-system, sans-serif;
+            --font-body: '[[${fontBody}]]', -apple-system, sans-serif;
+            --space-scale: [[${spaceScale}]];
+
+            --bg: #ffffff;
+            --bg-alt: #f9fafb;
+            --text: #1f2937;
+            --text-heading: #0f172a;
+            --muted: #6b7280;
+            --divider: #e5e7eb;
+            --sidebar-text: #ffffff;
+            --sidebar-muted: rgba(255,255,255,0.72);
+
+
+            --sp-xs: calc(4px * var(--space-scale));
+            --sp-sm: calc(8px * var(--space-scale));
+            --sp-md: calc(14px * var(--space-scale));
+            --sp-lg: calc(22px * var(--space-scale));
+            --sp-xl: calc(34px * var(--space-scale));
+            --page-padding: calc(42px * var(--space-scale));
+
+            --card-bg: #f9fafb;
+            --card-border: 1px solid #f3f4f6;
+            --card-radius: 12px;
+            --card-padding: var(--sp-md);
+            --card-shadow: 0 1px 2px rgba(0,0,0,0.04);
+
+            --badge-bg: var(--accent-light);
+            --badge-text: var(--accent-dark);
+            --badge-radius: 20px;
+            --badge-padding: 3px 10px;
+            --badge-border: none;
+
+            --icon-size: 13px;
+            --icon-color: var(--accent);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --bg-alt: #1e293b;
+            --text: #cbd5e1;
+            --text-heading: #f8fafc;
+            --muted: #94a3b8;
+            --divider: #334155;
+            --card-bg: #1e293b;
+            --card-border: 1px solid #334155;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            --badge-bg: rgba(255,255,255,0.08);
+            --badge-text: var(--accent);
+        }
+
+        [data-card="flat"] {
+            --card-bg: transparent; --card-border: none;
+            --card-shadow: none; --card-radius: 0;
+        }
+        [data-card="outline"] {
+            --card-bg: transparent; --card-border: 1.5px solid var(--accent);
+            --card-shadow: none;
+        }
+        [data-card="glass"] {
+            --card-bg: rgba(255,255,255,0.55);
+            --card-border: 1px solid rgba(255,255,255,0.4);
+            --card-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+        [data-theme="dark"][data-card="glass"] {
+            --card-bg: rgba(30,41,59,0.6);
+            --card-border: 1px solid rgba(148,163,184,0.2);
+        }
+        [data-card="none"] {
+            --card-bg: transparent; --card-border: none;
+            --card-shadow: none; --card-radius: 0;
+            --card-padding: 0 0 var(--sp-sm) 0;
+        }
+
+        [data-badge="square"]  { --badge-radius: 4px; }
+        [data-badge="outline"] {
+            --badge-bg: transparent;
+            --badge-text: var(--accent);
+            --badge-border: 1px solid var(--accent);
+        }
+        [data-badge="minimal"] {
+            --badge-bg: transparent; --badge-text: var(--text);
+            --badge-padding: 0; --badge-radius: 0;
+        }
+
+        [data-pattern="dots"] body {
+            background-image: radial-gradient(var(--divider) 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+        [data-pattern="lines"] body {
+            background-image: repeating-linear-gradient(
+                    45deg, transparent, transparent 12px,
+                    var(--divider) 12px, var(--divider) 13px);
+        }
+        [data-pattern="mesh"] body {
+            background-image:
+                    radial-gradient(at 20% 10%, var(--accent-light) 0px, transparent 50%),
+                    radial-gradient(at 80% 90%, var(--accent-light) 0px, transparent 50%);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @page { size: A4; margin: 0; }
+
+        html, body {
+            font-family: var(--font-body);
+            font-size: 10.5pt;
+            line-height: 1.55;
+            color: var(--text);
+            background: var(--bg);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            color: var(--text-heading);
+            line-height: 1.2;
+        }
+        i[class*="pi-"], i[class*="lucide-"] {
+            font-size: var(--icon-size);
+            color: var(--icon-color);
+        }
+
+
+        .cv-card {
+            background: var(--card-bg);
+            border: var(--card-border);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            box-shadow: var(--card-shadow);
+            margin-bottom: var(--sp-sm);
+            page-break-inside: avoid;
+        }
+        .cv-card-header {
+            display: flex; justify-content: space-between;
+            align-items: baseline; gap: var(--sp-sm);
+        }
+        .cv-card-title {
+            font-family: var(--font-heading);
+            font-size: 11pt; font-weight: 700;
+            color: var(--text-heading);
+        }
+        .cv-card-subtitle {
+            font-size: 9.5pt; color: var(--accent); font-weight: 600;
+        }
+        .cv-card-period {
+            font-size: 8.5pt; color: var(--muted); white-space: nowrap;
+        }
+        .cv-card-desc {
+            font-size: 9.5pt; margin-top: var(--sp-xs); line-height: 1.55;
+        }
+
+        .cv-badge {
+            display: inline-block;
+            font-size: 8pt; font-weight: 500;
+            padding: var(--badge-padding);
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            border-radius: var(--badge-radius);
+            border: var(--badge-border);
+            margin: 2px 3px 2px 0;
+        }
+
+
+        .cv-section { margin-bottom: var(--sp-lg); }
+        .cv-section-title {
+            font-family: var(--font-heading);
+            font-size: 11pt; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.4px;
+            color: var(--text-heading);
+            margin-bottom: var(--sp-md);
+            padding-bottom: var(--sp-xs);
+            border-bottom: 2px solid var(--accent);
+            display: flex; align-items: center; gap: var(--sp-sm);
+        }
+
+        .cv-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: var(--bg);
+        }
+
+        .cv-footer {
+            margin-top: var(--sp-lg);
+            padding-top: var(--sp-sm);
+            border-top: 1px solid var(--divider);
+            font-size: 7.5pt;
+            color: var(--muted);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+</body>
+</html>

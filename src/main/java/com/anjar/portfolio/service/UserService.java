@@ -2,16 +2,20 @@ package com.anjar.portfolio.service;
 
 import com.anjar.portfolio.dto.*;
 import com.anjar.portfolio.entity.User;
-import com.anjar.portfolio.entity.UserRole;
+import com.anjar.portfolio.enums.UserRole;
+import com.anjar.portfolio.enums.UserStatus;
 import com.anjar.portfolio.exception.ResourceNotFoundException;
 import com.anjar.portfolio.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -25,6 +29,7 @@ public class UserService {
     private final MessageRepository messageRepository;
     private final SlugService slugService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;   // ← TAMBAH (Fase 9.13)
 
     // ============================================================
     // PUBLIC
@@ -33,7 +38,10 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserPublicDTO> getAllPublicUsers() {
         return userRepository.findAllByActiveTrueOrderByCreatedAtDesc()
-                .stream().map(this::toPublicDTO).toList();
+                .stream()
+                .filter(u -> u.getStatus() == UserStatus.ACTIVE)
+                .map(this::toPublicDTO)
+                .toList();
     }
 
     // ============================================================
@@ -57,13 +65,14 @@ public class UserService {
     }
 
     // ============================================================
-    // ADMIN
+    // ADMIN — USER CRUD
     // ============================================================
 
     @Transactional(readOnly = true)
     public List<UserAdminDTO> getAllForAdmin() {
         return userRepository.findAll().stream()
-                .map(this::toAdminDTO).toList();
+                .map(this::toAdminDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +103,9 @@ public class UserService {
                 .displayName(req.getDisplayName() != null ? req.getDisplayName() : req.getUsername())
                 .portfolioSlug(slug)
                 .role(req.getRole() != null ? UserRole.valueOf(req.getRole()) : UserRole.OWNER)
+                .status(UserStatus.ACTIVE)
                 .active(true)
+                .approvedAt(LocalDateTime.now())
                 .build();
 
         return toAdminDTO(userRepository.save(user));
@@ -138,13 +149,7 @@ public class UserService {
     public UserAdminDTO changeRole(Long id, String role) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
-
-        try {
-            user.setRole(UserRole.valueOf(role.toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Role tidak valid: " + role);
-        }
-
+        user.setRole(UserRole.valueOf(role));
         return toAdminDTO(userRepository.save(user));
     }
 
@@ -162,6 +167,93 @@ public class UserService {
                 .totalTechStacks(techStackRepository.count())
                 .totalMessages(messageRepository.count())
                 .build();
+    }
+
+    // ============================================================
+    // APPROVAL
+    // ============================================================
+
+    /**
+     * Approve user + kirim email notif.
+     */
+    @Transactional
+    public UserAdminDTO approveUser(Long userId, Long adminId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        user.setStatus(UserStatus.ACTIVE);
+        user.setApprovedAt(LocalDateTime.now());
+        user.setApprovedBy(adminId);
+        user.setRejectionReason(null);
+
+        User saved = userRepository.save(user);
+        log.info("✅ User approved: {} (id={}) by admin {}",
+                saved.getUsername(), saved.getId(), adminId);
+
+        // ===== KIRIM EMAIL (Fase 9.13) =====
+        try {
+            emailService.sendApprovedEmail(
+                    saved.getEmail(),
+                    saved.getUsername(),
+                    saved.getPortfolioSlug()
+            );
+        } catch (Exception e) {
+            log.error("⚠️ Failed to send approved email: {}", e.getMessage());
+        }
+
+        return toAdminDTO(saved);
+    }
+
+    /**
+     * Reject user + kirim email notif.
+     */
+    @Transactional
+    public UserAdminDTO rejectUser(Long userId, Long adminId, String reason) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        user.setStatus(UserStatus.REJECTED);
+        user.setRejectionReason(reason);
+        user.setApprovedBy(adminId);
+
+        User saved = userRepository.save(user);
+        log.warn("❌ User rejected: {} (id={}) by admin {} (reason: {})",
+                saved.getUsername(), saved.getId(), adminId, reason);
+
+        // ===== KIRIM EMAIL (Fase 9.13) =====
+        try {
+            emailService.sendRejectedEmail(
+                    saved.getEmail(),
+                    saved.getUsername(),
+                    reason
+            );
+        } catch (Exception e) {
+            log.error("⚠️ Failed to send rejected email: {}", e.getMessage());
+        }
+
+        return toAdminDTO(saved);
+    }
+
+    /**
+     * Suspend user — gak kirim email (opsional).
+     */
+    @Transactional
+    public UserAdminDTO suspendUser(Long userId, Long adminId, String reason) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        user.setStatus(UserStatus.SUSPENDED);
+        user.setRejectionReason(reason);
+        user.setApprovedBy(adminId);
+
+        User saved = userRepository.save(user);
+        log.warn("⚠️ User suspended: {} (id={}) by admin {} (reason: {})",
+                saved.getUsername(), saved.getId(), adminId, reason);
+
+        // TODO: kirim email suspend (opsional — bisa dibuat nanti)
+        // emailService.sendSuspendedEmail(...)
+
+        return toAdminDTO(saved);
     }
 
     // ============================================================
@@ -187,7 +279,11 @@ public class UserService {
                 .displayName(u.getDisplayName())
                 .portfolioSlug(u.getPortfolioSlug())
                 .role(u.getRole().name())
+                .status(u.getStatus().name())
                 .active(u.getActive())
+                .rejectionReason(u.getRejectionReason())
+                .approvedAt(u.getApprovedAt())
+                .approvedBy(u.getApprovedBy())
                 .createdAt(u.getCreatedAt())
                 .updatedAt(u.getUpdatedAt())
                 .build();

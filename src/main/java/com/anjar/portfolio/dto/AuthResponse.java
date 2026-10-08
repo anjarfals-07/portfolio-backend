@@ -18,8 +18,8 @@ public class AuthResponse {
 
     private Long userId;
     private String username;
-    private String role;         // ← BARU: OWNER / SUPER_ADMIN
-    private String portfolioSlug; // ← BARU: /anjar
-    private String displayName;   // ← BARU
-    private Long expiresIn;       // ← BARU: ms
+    private String role;
+    private String portfolioSlug;
+    private String displayName;
+    private Long expiresIn;       
 }
