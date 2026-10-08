@@ -16,8 +16,8 @@ RUN mvn clean package -DskipTests -B
 # ============================================================
 FROM eclipse-temurin:17-jre-alpine
 
-# ⭐ Install PostgreSQL client version 18 (match dengan Neon)
-RUN apk add --no-cache postgresql18-client bash tzdata wget
+# ⭐ Install packages (tanpa pg client — pakai Cloudinary untuk file)
+RUN apk add --no-cache bash tzdata wget
 
 ENV TZ=Asia/Jakarta
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
